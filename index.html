@@ -111,6 +111,21 @@
       color: #888;
       margin-top: 2px;
     }
+    .entry-badges {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+    .badge-met { background: #22c55e33; color: #22c55e; }
+    .badge-notmet { background: #ef444433; color: #ef4444; }
+    .badge-interest { background: #f59e0b33; color: #f59e0b; }
     .entry-status {
       font-size: 11px;
       padding: 4px 8px;
@@ -182,6 +197,20 @@
       outline: none;
       border-color: #3b82f6;
     }
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+    .form-row .form-group { flex: 1; }
+    
+    .section-header {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      margin: 20px 0 12px;
+      padding-top: 16px;
+      border-top: 1px solid #333;
+    }
     
     .photos-section { margin-bottom: 16px; }
     .photos-grid {
@@ -251,6 +280,26 @@
       padding: 40px;
       color: #888;
     }
+    
+    .rating-input {
+      display: flex;
+      gap: 8px;
+    }
+    .rating-input button {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #222;
+      color: #888;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .rating-input button.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -281,33 +330,133 @@
           <input type="text" id="entryName" required>
         </div>
         
-        <div class="form-group">
-          <label>Date Met</label>
-          <input type="date" id="entryDate">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Platform</label>
+            <select id="entryPlatform">
+              <option value="">Select...</option>
+              <option value="Hinge">Hinge</option>
+              <option value="Bumble">Bumble</option>
+              <option value="Tinder">Tinder</option>
+              <option value="Raya">Raya</option>
+              <option value="R4R">R4R</option>
+              <option value="IRL">IRL</option>
+              <option value="Through Friends">Through Friends</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="entryStatus">
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="ended">Ended</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date Started</label>
+            <input type="date" id="entryDateStarted">
+          </div>
+          <div class="form-group">
+            <label>Date Ended</label>
+            <input type="date" id="entryDateEnded">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Met In Person</label>
+            <select id="entryMetInPerson">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Number of Dates</label>
+            <input type="number" id="entryNumDates" min="0">
+          </div>
+        </div>
+        
+        <div class="section-header">Ratings</div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Interest (1-5)</label>
+            <div class="rating-input" id="ratingInterest">
+              <button type="button" onclick="setRating('Interest', 1)">1</button>
+              <button type="button" onclick="setRating('Interest', 2)">2</button>
+              <button type="button" onclick="setRating('Interest', 3)">3</button>
+              <button type="button" onclick="setRating('Interest', 4)">4</button>
+              <button type="button" onclick="setRating('Interest', 5)">5</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Future Likelihood (1-5)</label>
+            <div class="rating-input" id="ratingFuture">
+              <button type="button" onclick="setRating('Future', 1)">1</button>
+              <button type="button" onclick="setRating('Future', 2)">2</button>
+              <button type="button" onclick="setRating('Future', 3)">3</button>
+              <button type="button" onclick="setRating('Future', 4)">4</button>
+              <button type="button" onclick="setRating('Future', 5)">5</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Physical Chemistry (1-5)</label>
+            <div class="rating-input" id="ratingPhysical">
+              <button type="button" onclick="setRating('Physical', 1)">1</button>
+              <button type="button" onclick="setRating('Physical', 2)">2</button>
+              <button type="button" onclick="setRating('Physical', 3)">3</button>
+              <button type="button" onclick="setRating('Physical', 4)">4</button>
+              <button type="button" onclick="setRating('Physical', 5)">5</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Emotional Connection (1-5)</label>
+            <div class="rating-input" id="ratingEmotional">
+              <button type="button" onclick="setRating('Emotional', 1)">1</button>
+              <button type="button" onclick="setRating('Emotional', 2)">2</button>
+              <button type="button" onclick="setRating('Emotional', 3)">3</button>
+              <button type="button" onclick="setRating('Emotional', 4)">4</button>
+              <button type="button" onclick="setRating('Emotional', 5)">5</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sex</label>
+            <select id="entrySex">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Sex Good</label>
+            <select id="entrySexGood">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="N/A">N/A</option>
+            </select>
+          </div>
         </div>
         
         <div class="form-group">
-          <label>Source</label>
-          <select id="entrySource">
+          <label>Ended By</label>
+          <select id="entryEndedBy">
             <option value="">Select...</option>
-            <option value="Hinge">Hinge</option>
-            <option value="Bumble">Bumble</option>
-            <option value="Tinder">Tinder</option>
-            <option value="Raya">Raya</option>
-            <option value="Reddit">Reddit</option>
-            <option value="IRL">IRL</option>
-            <option value="Through Friends">Through Friends</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label>Status</label>
-          <select id="entryStatus">
-            <option value="prospect">Prospect</option>
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
-            <option value="ended">Ended</option>
+            <option value="me">Me</option>
+            <option value="them">Them</option>
+            <option value="mutual">Mutual</option>
+            <option value="ghosted">Ghosted</option>
           </select>
         </div>
         
@@ -348,14 +497,14 @@
   </div>
   
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyJEKtvTVXVR2-DiiGGb5c79fM8p3HSTmOjD0uvW12CmwOu_NklTLMshEXLZ-_AWd_EyA/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzESr9foFPrKpQbF4Z-bPye0bfuKmwAgJjzl7EPPcttUtJsdWOSaThMGYBt0bfA6DwuxA/exec';
     
     let entries = [];
-    let photos = {}; // stored locally: { entryId: [photo1, photo2, photo3] }
+    let photos = {};
     let currentPhotoSlot = null;
     let editingId = null;
+    let ratings = { Interest: 0, Future: 0, Physical: 0, Emotional: 0 };
     
-    // Load photos from localStorage
     function loadLocalPhotos() {
       const stored = localStorage.getItem('datingTrackerPhotos');
       if (stored) photos = JSON.parse(stored);
@@ -365,20 +514,18 @@
       localStorage.setItem('datingTrackerPhotos', JSON.stringify(photos));
     }
     
-    // Sync status display
     function setSyncStatus(text, type = '') {
       const el = document.getElementById('syncStatus');
       el.textContent = text;
       el.className = 'sync-status ' + type;
     }
     
-    // Fetch entries from Google Sheets
     async function fetchEntries() {
       try {
         setSyncStatus('Syncing...', 'syncing');
         const res = await fetch(API_URL);
         entries = await res.json();
-        setSyncStatus('Synced just now', 'success');
+        setSyncStatus('Synced · ' + entries.length + ' entries', 'success');
         renderList();
       } catch (err) {
         console.error(err);
@@ -390,7 +537,6 @@
       await fetchEntries();
     }
     
-    // Render entries list
     function renderList() {
       const list = document.getElementById('list');
       
@@ -399,17 +545,15 @@
         return;
       }
       
-      // Sort by date descending
       const sorted = [...entries].sort((a, b) => {
-        const dateA = a.date ? new Date(a.date) : new Date(a.created || 0);
-        const dateB = b.date ? new Date(b.date) : new Date(b.created || 0);
+        const dateA = a['Date Started'] ? new Date(a['Date Started']) : new Date(0);
+        const dateB = b['Date Started'] ? new Date(b['Date Started']) : new Date(0);
         return dateB - dateA;
       });
       
-      // Group by year
       const byYear = {};
       sorted.forEach(e => {
-        const d = e.date ? new Date(e.date) : new Date(e.created || Date.now());
+        const d = e['Date Started'] ? new Date(e['Date Started']) : new Date();
         const year = d.getFullYear();
         if (!byYear[year]) byYear[year] = [];
         byYear[year].push(e);
@@ -421,21 +565,34 @@
       years.forEach(year => {
         html += `<div class="year-header">${year}</div>`;
         byYear[year].forEach(e => {
-          const photo = photos[e.id]?.[0];
+          const id = String(e.id);
+          const photo = photos[id]?.[0];
           const initial = (e.name || '?')[0].toUpperCase();
           const photoHtml = photo 
             ? `<img class="entry-photo" src="${photo}" alt="">`
             : `<div class="entry-photo-placeholder">${initial}</div>`;
           
-          const statusClass = `status-${e.status || 'prospect'}`;
-          const statusLabel = (e.status || 'prospect').charAt(0).toUpperCase() + (e.status || 'prospect').slice(1);
+          const status = (e.Status || 'active').toLowerCase();
+          const statusClass = `status-${status}`;
+          const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+          
+          const met = e['Met In Person'];
+          const interest = e['Interest (1-5)'];
+          const numDates = e['Number of Dates'];
+          
+          let badges = '';
+          if (met === 'Yes') badges += '<span class="badge badge-met">Met</span>';
+          else if (met === 'No') badges += '<span class="badge badge-notmet">Not met</span>';
+          if (interest) badges += `<span class="badge badge-interest">★${interest}</span>`;
+          if (numDates && numDates > 0) badges += `<span class="badge badge-met">${numDates} dates</span>`;
           
           html += `
-            <div class="entry" onclick="openEditModal('${e.id}')">
+            <div class="entry" onclick="openEditModal('${id}')">
               ${photoHtml}
               <div class="entry-info">
                 <div class="entry-name">${e.name || 'Unnamed'}</div>
-                <div class="entry-meta">${e.source || ''}${e.source && e.date ? ' · ' : ''}${e.date || ''}</div>
+                <div class="entry-meta">${e.Platform || ''}${e.Platform && e['Date Started'] ? ' · ' : ''}${e['Date Started'] || ''}</div>
+                <div class="entry-badges">${badges}</div>
               </div>
               <span class="entry-status ${statusClass}">${statusLabel}</span>
             </div>
@@ -446,33 +603,61 @@
       list.innerHTML = html;
     }
     
-    // Modal handling
+    function setRating(type, value) {
+      ratings[type] = value;
+      const container = document.getElementById('rating' + type);
+      container.querySelectorAll('button').forEach((btn, i) => {
+        btn.classList.toggle('active', i < value);
+      });
+    }
+    
+    function clearRatings() {
+      ratings = { Interest: 0, Future: 0, Physical: 0, Emotional: 0 };
+      ['Interest', 'Future', 'Physical', 'Emotional'].forEach(type => {
+        const container = document.getElementById('rating' + type);
+        container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+      });
+    }
+    
     function openAddModal() {
       editingId = null;
       document.getElementById('modalTitle').textContent = 'Add Entry';
       document.getElementById('entryForm').reset();
       document.getElementById('entryId').value = '';
       document.getElementById('deleteBtn').style.display = 'none';
+      clearRatings();
       resetPhotoSlots();
       document.getElementById('modalOverlay').classList.add('active');
     }
     
     function openEditModal(id) {
-      const entry = entries.find(e => e.id === id);
+      const entry = entries.find(e => String(e.id) === String(id));
       if (!entry) return;
       
       editingId = id;
       document.getElementById('modalTitle').textContent = 'Edit Entry';
       document.getElementById('entryId').value = id;
       document.getElementById('entryName').value = entry.name || '';
-      document.getElementById('entryDate').value = entry.date || '';
-      document.getElementById('entrySource').value = entry.source || '';
-      document.getElementById('entryStatus').value = entry.status || 'prospect';
-      document.getElementById('entryNotes').value = entry.notes || '';
+      document.getElementById('entryPlatform').value = entry.Platform || '';
+      document.getElementById('entryStatus').value = (entry.Status || 'active').toLowerCase();
+      document.getElementById('entryDateStarted').value = entry['Date Started'] || '';
+      document.getElementById('entryDateEnded').value = entry['Date Ended'] || '';
+      document.getElementById('entryMetInPerson').value = entry['Met In Person'] || '';
+      document.getElementById('entryNumDates').value = entry['Number of Dates'] || '';
+      document.getElementById('entrySex').value = entry.Sex || '';
+      document.getElementById('entrySexGood').value = entry['Sex Good'] || '';
+      document.getElementById('entryEndedBy').value = entry['Ended By'] || '';
+      document.getElementById('entryNotes').value = entry.Notes || '';
       document.getElementById('deleteBtn').style.display = 'block';
       
+      clearRatings();
+      if (entry['Interest (1-5)']) setRating('Interest', parseInt(entry['Interest (1-5)']));
+      if (entry['Future Likelihood']) setRating('Future', parseInt(entry['Future Likelihood']));
+      if (entry['Physical Chemistry']) setRating('Physical', parseInt(entry['Physical Chemistry']));
+      if (entry['Emotional Connection']) setRating('Emotional', parseInt(entry['Emotional Connection']));
+      
       resetPhotoSlots();
-      const entryPhotos = photos[id] || [];
+      const entryPhotos = photos[String(id)] || [];
       entryPhotos.forEach((p, i) => {
         if (p) setPhotoSlot(i, p);
       });
@@ -485,7 +670,6 @@
       document.getElementById('modalOverlay').classList.remove('active');
     }
     
-    // Photo handling
     function resetPhotoSlots() {
       for (let i = 0; i < 3; i++) {
         const slot = document.getElementById(`photoSlot${i}`);
@@ -519,7 +703,6 @@
       
       const reader = new FileReader();
       reader.onload = (e) => {
-        // Compress image
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -554,7 +737,6 @@
       }
     }
     
-    // Save entry
     async function saveEntry(event) {
       event.preventDefault();
       
@@ -562,16 +744,22 @@
       const entry = {
         id,
         name: document.getElementById('entryName').value,
-        date: document.getElementById('entryDate').value,
-        source: document.getElementById('entrySource').value,
-        status: document.getElementById('entryStatus').value,
-        notes: document.getElementById('entryNotes').value,
-        photo1: '', photo2: '', photo3: '', // Not syncing actual photos
-        created: editingId ? entries.find(e => e.id === id)?.created : new Date().toISOString(),
-        updated: new Date().toISOString()
+        Platform: document.getElementById('entryPlatform').value,
+        'Date Started': document.getElementById('entryDateStarted').value,
+        'Date Ended': document.getElementById('entryDateEnded').value,
+        Status: document.getElementById('entryStatus').value,
+        Notes: document.getElementById('entryNotes').value,
+        'Interest (1-5)': ratings.Interest || '',
+        'Future Likelihood': ratings.Future || '',
+        'Met In Person': document.getElementById('entryMetInPerson').value,
+        'Number of Dates': document.getElementById('entryNumDates').value,
+        Sex: document.getElementById('entrySex').value,
+        'Sex Good': document.getElementById('entrySexGood').value,
+        'Physical Chemistry': ratings.Physical || '',
+        'Emotional Connection': ratings.Emotional || '',
+        'Ended By': document.getElementById('entryEndedBy').value
       };
       
-      // Save photos locally
       const entryPhotos = [];
       for (let i = 0; i < 3; i++) {
         const img = document.getElementById(`photoSlot${i}`).querySelector('img');
@@ -580,22 +768,23 @@
       photos[id] = entryPhotos;
       saveLocalPhotos();
       
-      // Save to Google Sheets
       try {
         setSyncStatus('Saving...', 'syncing');
         await fetch(API_URL, {
           method: 'POST',
+          mode: 'no-cors',
           body: JSON.stringify({ action: editingId ? 'update' : 'add', entry })
         });
-        await fetchEntries();
-        closeModal();
+        setTimeout(async () => {
+          await fetchEntries();
+          closeModal();
+        }, 1000);
       } catch (err) {
         console.error(err);
         setSyncStatus('Save failed', 'error');
       }
     }
     
-    // Delete entry
     async function deleteEntry() {
       if (!editingId) return;
       if (!confirm('Delete this entry?')) return;
@@ -604,19 +793,21 @@
         setSyncStatus('Deleting...', 'syncing');
         await fetch(API_URL, {
           method: 'POST',
+          mode: 'no-cors',
           body: JSON.stringify({ action: 'delete', id: editingId })
         });
         delete photos[editingId];
         saveLocalPhotos();
-        await fetchEntries();
-        closeModal();
+        setTimeout(async () => {
+          await fetchEntries();
+          closeModal();
+        }, 1000);
       } catch (err) {
         console.error(err);
         setSyncStatus('Delete failed', 'error');
       }
     }
     
-    // Init
     loadLocalPhotos();
     fetchEntries();
   </script>
