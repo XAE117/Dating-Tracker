@@ -5,838 +5,620 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Dating Tracker">
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#111111">
   <title>Dating Tracker</title>
-  <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
   <style>
-    body { 
-      -webkit-user-select: none; 
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior: none;
-      background-color: #0a0a0a;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #111;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding-bottom: 80px;
     }
-    input, textarea, select { -webkit-user-select: auto; user-select: auto; }
-    @media (display-mode: standalone) {
-      body { padding-top: env(safe-area-inset-top); }
+    .header {
+      background: #1a1a1a;
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid #333;
     }
-    input[type="range"] {
-      -webkit-appearance: none;
-      background: #404040;
-      border-radius: 8px;
-      height: 8px;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 24px;
-      height: 24px;
+    .header h1 { font-size: 20px; font-weight: 600; color: #fff; }
+    .header-actions { display: flex; gap: 12px; margin-top: 12px; }
+    .btn {
       background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { background: #555; cursor: not-allowed; }
+    .btn-secondary { background: #333; }
+    .btn-secondary:hover { background: #444; }
+    .btn-danger { background: #dc2626; }
+    .btn-danger:hover { background: #b91c1c; }
+    
+    .sync-status {
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+    }
+    .sync-status.syncing { color: #f59e0b; }
+    .sync-status.error { color: #ef4444; }
+    .sync-status.success { color: #22c55e; }
+    
+    .list { padding: 12px; }
+    .year-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      padding: 16px 8px 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .entry {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .entry:hover { background: #222; }
+    .entry-photo {
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
+      object-fit: cover;
+      background: #333;
+      flex-shrink: 0;
     }
-    .blur-photo {
-      filter: blur(20px);
-      transition: filter 0.3s ease;
+    .entry-photo-placeholder {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      flex-shrink: 0;
     }
-    .blur-photo.revealed {
-      filter: blur(0);
+    .entry-info { flex: 1; min-width: 0; }
+    .entry-name {
+      font-size: 16px;
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .entry-meta {
+      font-size: 13px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .entry-status {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .status-active { background: #22c55e22; color: #22c55e; }
+    .status-paused { background: #f59e0b22; color: #f59e0b; }
+    .status-ended { background: #ef444422; color: #ef4444; }
+    .status-prospect { background: #3b82f622; color: #3b82f6; }
+    
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #1a1a1a;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      border-radius: 20px 20px 0 0;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 { font-size: 18px; color: #fff; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: #222;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    .photos-section { margin-bottom: 16px; }
+    .photos-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .photo-slot {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      background: #222;
+      border: 2px dashed #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .photo-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-slot.blurred img { filter: blur(20px); }
+    .photo-slot .remove-photo {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      display: none;
+    }
+    .photo-slot:hover .remove-photo { display: block; }
+    .photo-slot .photo-label {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      font-size: 10px;
+      color: #888;
+    }
+    .photo-add { color: #555; font-size: 24px; }
+    
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .form-actions .btn { flex: 1; }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    .empty-state p { margin-top: 10px; }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
     }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect } = React;
-
-    const DatingTracker = () => {
-      const [people, setPeople] = useState([]);
-      const [showForm, setShowForm] = useState(false);
-      const [editingId, setEditingId] = useState(null);
-      const [activeTab, setActiveTab] = useState('active');
-      const [revealedPhotos, setRevealedPhotos] = useState({});
-      
-      const emptyPerson = {
-        id: null,
-        name: '',
-        platform: '',
-        dateStarted: '',
-        dateEnded: '',
-        interestRating: 3,
-        futureLikelihood: 5,
-        flags: { green: [], yellow: [], red: [] },
-        newFlag: { color: 'green', text: '' },
-        status: 'active',
-        metInPerson: null,
-        numberOfDates: 0,
-        sex: null,
-        sexGood: null,
-        physicalChemistry: null,
-        emotionalConnection: null,
-        endedBy: '',
-        whyEnded: '',
-        sawIssuesEarly: null,
-        wouldSwipeAgain: null,
-        whatDrewYou: '',
-        whatLearned: '',
-        notes: '',
-        photos: []
-      };
-      
-      const [currentPerson, setCurrentPerson] = useState(emptyPerson);
-
-      useEffect(() => {
-        const saved = localStorage.getItem('datingTracker');
-        if (saved) setPeople(JSON.parse(saved));
-      }, []);
-
-      useEffect(() => {
-        localStorage.setItem('datingTracker', JSON.stringify(people));
-      }, [people]);
-
-      const compressImage = (file, maxWidth = 400) => {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
-              canvas.width = img.width * ratio;
-              canvas.height = img.height * ratio;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              resolve(canvas.toDataURL('image/jpeg', 0.7));
-            };
-            img.src = e.target.result;
-          };
-          reader.readAsDataURL(file);
-        });
-      };
-
-      const handlePhotoUpload = async (e, index) => {
-        const file = e.target.files[0];
-        if (!file) return;
+  <div class="header">
+    <h1>Dating Tracker</h1>
+    <div class="header-actions">
+      <button class="btn" onclick="openAddModal()">+ Add Entry</button>
+      <button class="btn btn-secondary" onclick="syncData()">↻ Sync</button>
+    </div>
+    <div id="syncStatus" class="sync-status"></div>
+  </div>
+  
+  <div id="list" class="list">
+    <div class="loading">Loading...</div>
+  </div>
+  
+  <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Entry</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="entryForm" onsubmit="saveEntry(event)">
+        <input type="hidden" id="entryId">
         
-        const compressed = await compressImage(file);
-        const newPhotos = [...(currentPerson.photos || [])];
-        newPhotos[index] = compressed;
-        setCurrentPerson({ ...currentPerson, photos: newPhotos });
-      };
-
-      const removePhoto = (index) => {
-        const newPhotos = [...(currentPerson.photos || [])];
-        newPhotos[index] = null;
-        setCurrentPerson({ ...currentPerson, photos: newPhotos });
-      };
-
-      const toggleReveal = (photoKey) => {
-        setRevealedPhotos(prev => ({ ...prev, [photoKey]: !prev[photoKey] }));
-      };
-
-      const savePerson = () => {
-        if (!currentPerson.name.trim()) return;
-        if (editingId) {
-          setPeople(people.map(p => p.id === editingId ? { ...currentPerson, id: editingId } : p));
-        } else {
-          setPeople([...people, { ...currentPerson, id: Date.now() }]);
-        }
-        setCurrentPerson(emptyPerson);
-        setShowForm(false);
-        setEditingId(null);
-        setRevealedPhotos({});
-      };
-
-      const editPerson = (person) => {
-        setCurrentPerson({ ...emptyPerson, ...person, newFlag: { color: 'green', text: '' }, photos: person.photos || [] });
-        setEditingId(person.id);
-        setShowForm(true);
-        setRevealedPhotos({});
-      };
-
-      const deletePerson = (id) => {
-        if (confirm('Delete this person?')) {
-          setPeople(people.filter(p => p.id !== id));
-        }
-      };
-
-      const addFlag = () => {
-        if (!currentPerson.newFlag.text.trim()) return;
-        const color = currentPerson.newFlag.color;
-        setCurrentPerson({
-          ...currentPerson,
-          flags: {
-            ...currentPerson.flags,
-            [color]: [...currentPerson.flags[color], currentPerson.newFlag.text]
-          },
-          newFlag: { color: 'green', text: '' }
-        });
-      };
-
-      const removeFlag = (color, index) => {
-        setCurrentPerson({
-          ...currentPerson,
-          flags: {
-            ...currentPerson.flags,
-            [color]: currentPerson.flags[color].filter((_, i) => i !== index)
-          }
-        });
-      };
-
-      const importCSV = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const text = event.target.result;
-          const lines = text.split('\n').filter(l => l.trim());
-          const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-          
-          const imported = [];
-          for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-            const clean = values.map(v => v.replace(/^"|"$/g, '').trim());
-            
-            const yn = (v) => v === 'Yes' ? true : v === 'No' ? false : null;
-            
-            imported.push({
-              id: Date.now() + i,
-              name: clean[0] || '',
-              platform: clean[1] || '',
-              dateStarted: clean[2] || '',
-              dateEnded: clean[3] || '',
-              status: clean[4] || 'active',
-              interestRating: parseInt(clean[5]) || 3,
-              futureLikelihood: parseInt(clean[6]) || 5,
-              metInPerson: yn(clean[7]),
-              numberOfDates: parseInt(clean[8]) || 0,
-              sex: yn(clean[9]),
-              sexGood: yn(clean[10]),
-              physicalChemistry: yn(clean[11]),
-              emotionalConnection: yn(clean[12]),
-              endedBy: clean[13] || '',
-              whyEnded: clean[14] || '',
-              sawIssuesEarly: yn(clean[15]),
-              wouldSwipeAgain: yn(clean[16]),
-              flags: {
-                green: clean[17] ? clean[17].split('; ').filter(f => f) : [],
-                yellow: clean[18] ? clean[18].split('; ').filter(f => f) : [],
-                red: clean[19] ? clean[19].split('; ').filter(f => f) : []
-              },
-              whatDrewYou: clean[20] || '',
-              whatLearned: clean[21] || '',
-              notes: clean[22] || '',
-              photos: []
-            });
-          }
-          
-          if (confirm(`Import ${imported.length} people? This will replace all existing data.`)) {
-            setPeople(imported);
-          }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-      };
-
-      const exportCSV = () => {
-        const headers = [
-          'Name', 'Platform', 'Date Started', 'Date Ended', 'Status',
-          'Interest (1-5)', 'Future Likelihood (1-10)', 
-          'Met In Person', 'Number of Dates', 'Sex', 'Sex Good',
-          'Physical Chemistry', 'Emotional Connection',
-          'Ended By', 'Why Ended', 'Saw Issues Early', 'Would Swipe Again',
-          'Green Flags', 'Yellow Flags', 'Red Flags',
-          'What Drew You', 'What Learned', 'Notes'
-        ];
-        
-        const yn = (v) => v === true ? 'Yes' : v === false ? 'No' : '';
-        
-        const rows = people.map(p => [
-          p.name,
-          p.platform || '',
-          p.dateStarted || '',
-          p.dateEnded || '',
-          p.status || 'active',
-          p.interestRating,
-          p.futureLikelihood,
-          yn(p.metInPerson),
-          p.numberOfDates || 0,
-          yn(p.sex),
-          yn(p.sexGood),
-          yn(p.physicalChemistry),
-          yn(p.emotionalConnection),
-          p.endedBy || '',
-          p.whyEnded || '',
-          yn(p.sawIssuesEarly),
-          yn(p.wouldSwipeAgain),
-          (p.flags?.green || []).join('; '),
-          (p.flags?.yellow || []).join('; '),
-          (p.flags?.red || []).join('; '),
-          p.whatDrewYou || '',
-          p.whatLearned || '',
-          p.notes || ''
-        ]);
-        
-        const csvContent = [headers, ...rows]
-          .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-          .join('\n');
-        
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `dating-tracker-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-      };
-
-      const getInitials = (name) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-      };
-
-      const Avatar = ({ person, size = 'md' }) => {
-        const sizeClasses = {
-          sm: 'w-10 h-10 text-sm',
-          md: 'w-12 h-12 text-base',
-          lg: 'w-16 h-16 text-lg'
-        };
-        
-        const photo = person.photos?.[0];
-        
-        if (photo) {
-          return (
-            <img 
-              src={photo} 
-              alt={person.name}
-              className={`${sizeClasses[size]} rounded-full object-cover border-2 border-neutral-700`}
-            />
-          );
-        }
-        
-        return (
-          <div className={`${sizeClasses[size]} rounded-full bg-neutral-700 flex items-center justify-center text-neutral-300 font-medium border-2 border-neutral-600`}>
-            {getInitials(person.name)}
-          </div>
-        );
-      };
-
-      const PhotoUpload = ({ index, photo, onUpload, onRemove }) => {
-        const isHidden = index > 0;
-        const photoKey = `photo-${index}`;
-        const isRevealed = revealedPhotos[photoKey];
-        
-        return (
-          <div className="relative">
-            <label className="block text-sm font-medium text-neutral-400 mb-2">
-              Photo {index + 1} {isHidden && '(hidden)'}
-            </label>
-            {photo ? (
-              <div className="relative">
-                <img 
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  className={`w-full h-32 object-cover rounded-xl ${isHidden && !isRevealed ? 'blur-photo' : ''}`}
-                  onClick={() => isHidden && toggleReveal(photoKey)}
-                />
-                {isHidden && !isRevealed && (
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center text-neutral-400 text-sm cursor-pointer"
-                    onClick={() => toggleReveal(photoKey)}
-                  >
-                    Tap to reveal
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onRemove(index)}
-                  className="absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-60 rounded-full text-white text-lg flex items-center justify-center"
-                >
-                  ×
-                </button>
-              </div>
-            ) : (
-              <label className="block w-full h-32 bg-neutral-800 border-2 border-dashed border-neutral-600 rounded-xl flex items-center justify-center cursor-pointer">
-                <span className="text-neutral-500">+ Add photo</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={(e) => onUpload(e, index)} 
-                  className="hidden" 
-                />
-              </label>
-            )}
-          </div>
-        );
-      };
-
-      const StarRating = ({ value, onChange }) => (
-        <div className="flex gap-1">
-          {[1,2,3,4,5].map(i => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onChange(i)}
-              className={`text-3xl ${i <= value ? 'text-yellow-400' : 'text-neutral-600'}`}
-            >
-              ★
-            </button>
-          ))}
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" id="entryName" required>
         </div>
-      );
-
-      const YesNo = ({ value, onChange, label }) => (
-        <div>
-          <label className="block text-sm font-medium text-neutral-400 mb-2">{label}</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => onChange(true)}
-              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === true ? 'bg-green-600 text-white border-green-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              onClick={() => onChange(false)}
-              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === false ? 'bg-red-600 text-white border-red-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
-            >
-              No
-            </button>
-          </div>
+        
+        <div class="form-group">
+          <label>Date Met</label>
+          <input type="date" id="entryDate">
         </div>
-      );
-
-      const FlagBadge = ({ color, text, onRemove }) => {
-        const colors = {
-          green: 'bg-green-900 text-green-300 border-green-700',
-          yellow: 'bg-yellow-900 text-yellow-300 border-yellow-700',
-          red: 'bg-red-900 text-red-300 border-red-700'
-        };
-        return (
-          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border ${colors[color]}`}>
-            {text}
-            {onRemove && (
-              <button type="button" onClick={onRemove} className="ml-1 text-lg leading-none opacity-70">&times;</button>
-            )}
-          </span>
-        );
-      };
-
-      const filteredPeople = people.filter(p => {
-        if (activeTab === 'active') return p.status === 'active' || !p.status;
-        if (activeTab === 'ended') return p.status === 'ended';
-        return true;
+        
+        <div class="form-group">
+          <label>Source</label>
+          <select id="entrySource">
+            <option value="">Select...</option>
+            <option value="Hinge">Hinge</option>
+            <option value="Bumble">Bumble</option>
+            <option value="Tinder">Tinder</option>
+            <option value="Raya">Raya</option>
+            <option value="Reddit">Reddit</option>
+            <option value="IRL">IRL</option>
+            <option value="Through Friends">Through Friends</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <select id="entryStatus">
+            <option value="prospect">Prospect</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="ended">Ended</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="entryNotes" placeholder="How you met, impressions, etc."></textarea>
+        </div>
+        
+        <div class="photos-section">
+          <label style="font-size:13px;color:#888;margin-bottom:8px;display:block;">Photos (stored on this device only)</label>
+          <div class="photos-grid">
+            <div class="photo-slot" onclick="addPhoto(0)" id="photoSlot0">
+              <span class="photo-add">+</span>
+              <span class="photo-label">Main</span>
+            </div>
+            <div class="photo-slot blurred" onclick="toggleBlur(1)" id="photoSlot1">
+              <span class="photo-add">+</span>
+              <span class="photo-label">Private</span>
+            </div>
+            <div class="photo-slot blurred" onclick="toggleBlur(2)" id="photoSlot2">
+              <span class="photo-add">+</span>
+              <span class="photo-label">Private</span>
+            </div>
+          </div>
+          <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(event)">
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn">Save</button>
+        </div>
+        
+        <div id="deleteBtn" style="display:none; margin-top: 12px;">
+          <button type="button" class="btn btn-danger" style="width:100%" onclick="deleteEntry()">Delete Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyJEKtvTVXVR2-DiiGGb5c79fM8p3HSTmOjD0uvW12CmwOu_NklTLMshEXLZ-_AWd_EyA/exec';
+    
+    let entries = [];
+    let photos = {}; // stored locally: { entryId: [photo1, photo2, photo3] }
+    let currentPhotoSlot = null;
+    let editingId = null;
+    
+    // Load photos from localStorage
+    function loadLocalPhotos() {
+      const stored = localStorage.getItem('datingTrackerPhotos');
+      if (stored) photos = JSON.parse(stored);
+    }
+    
+    function saveLocalPhotos() {
+      localStorage.setItem('datingTrackerPhotos', JSON.stringify(photos));
+    }
+    
+    // Sync status display
+    function setSyncStatus(text, type = '') {
+      const el = document.getElementById('syncStatus');
+      el.textContent = text;
+      el.className = 'sync-status ' + type;
+    }
+    
+    // Fetch entries from Google Sheets
+    async function fetchEntries() {
+      try {
+        setSyncStatus('Syncing...', 'syncing');
+        const res = await fetch(API_URL);
+        entries = await res.json();
+        setSyncStatus('Synced just now', 'success');
+        renderList();
+      } catch (err) {
+        console.error(err);
+        setSyncStatus('Sync failed', 'error');
+      }
+    }
+    
+    async function syncData() {
+      await fetchEntries();
+    }
+    
+    // Render entries list
+    function renderList() {
+      const list = document.getElementById('list');
+      
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty-state"><p style="font-size:48px">💜</p><p>No entries yet.<br>Tap + to add someone.</p></div>';
+        return;
+      }
+      
+      // Sort by date descending
+      const sorted = [...entries].sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(a.created || 0);
+        const dateB = b.date ? new Date(b.date) : new Date(b.created || 0);
+        return dateB - dateA;
       });
-
-      const getYear = (person) => {
-        const date = person.dateStarted || person.dateEnded;
-        if (!date) return 'Unknown';
-        return date.split('-')[0];
+      
+      // Group by year
+      const byYear = {};
+      sorted.forEach(e => {
+        const d = e.date ? new Date(e.date) : new Date(e.created || Date.now());
+        const year = d.getFullYear();
+        if (!byYear[year]) byYear[year] = [];
+        byYear[year].push(e);
+      });
+      
+      let html = '';
+      const years = Object.keys(byYear).sort((a, b) => b - a);
+      
+      years.forEach(year => {
+        html += `<div class="year-header">${year}</div>`;
+        byYear[year].forEach(e => {
+          const photo = photos[e.id]?.[0];
+          const initial = (e.name || '?')[0].toUpperCase();
+          const photoHtml = photo 
+            ? `<img class="entry-photo" src="${photo}" alt="">`
+            : `<div class="entry-photo-placeholder">${initial}</div>`;
+          
+          const statusClass = `status-${e.status || 'prospect'}`;
+          const statusLabel = (e.status || 'prospect').charAt(0).toUpperCase() + (e.status || 'prospect').slice(1);
+          
+          html += `
+            <div class="entry" onclick="openEditModal('${e.id}')">
+              ${photoHtml}
+              <div class="entry-info">
+                <div class="entry-name">${e.name || 'Unnamed'}</div>
+                <div class="entry-meta">${e.source || ''}${e.source && e.date ? ' · ' : ''}${e.date || ''}</div>
+              </div>
+              <span class="entry-status ${statusClass}">${statusLabel}</span>
+            </div>
+          `;
+        });
+      });
+      
+      list.innerHTML = html;
+    }
+    
+    // Modal handling
+    function openAddModal() {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = 'Add Entry';
+      document.getElementById('entryForm').reset();
+      document.getElementById('entryId').value = '';
+      document.getElementById('deleteBtn').style.display = 'none';
+      resetPhotoSlots();
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+    
+    function openEditModal(id) {
+      const entry = entries.find(e => e.id === id);
+      if (!entry) return;
+      
+      editingId = id;
+      document.getElementById('modalTitle').textContent = 'Edit Entry';
+      document.getElementById('entryId').value = id;
+      document.getElementById('entryName').value = entry.name || '';
+      document.getElementById('entryDate').value = entry.date || '';
+      document.getElementById('entrySource').value = entry.source || '';
+      document.getElementById('entryStatus').value = entry.status || 'prospect';
+      document.getElementById('entryNotes').value = entry.notes || '';
+      document.getElementById('deleteBtn').style.display = 'block';
+      
+      resetPhotoSlots();
+      const entryPhotos = photos[id] || [];
+      entryPhotos.forEach((p, i) => {
+        if (p) setPhotoSlot(i, p);
+      });
+      
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+    
+    function closeModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+    
+    // Photo handling
+    function resetPhotoSlots() {
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById(`photoSlot${i}`);
+        slot.innerHTML = `<span class="photo-add">+</span><span class="photo-label">${i === 0 ? 'Main' : 'Private'}</span>`;
+        if (i > 0) slot.classList.add('blurred');
+      }
+    }
+    
+    function setPhotoSlot(index, dataUrl) {
+      const slot = document.getElementById(`photoSlot${index}`);
+      slot.innerHTML = `
+        <img src="${dataUrl}">
+        <button class="remove-photo" onclick="event.stopPropagation(); removePhoto(${index})">&times;</button>
+        <span class="photo-label">${index === 0 ? 'Main' : 'Private'}</span>
+      `;
+    }
+    
+    function addPhoto(index) {
+      const slot = document.getElementById(`photoSlot${index}`);
+      if (slot.querySelector('img')) {
+        if (index > 0) toggleBlur(index);
+        return;
+      }
+      currentPhotoSlot = index;
+      document.getElementById('photoInput').click();
+    }
+    
+    function handlePhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        // Compress image
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxSize = 400;
+          let w = img.width, h = img.height;
+          if (w > h) { if (w > maxSize) { h *= maxSize/w; w = maxSize; } }
+          else { if (h > maxSize) { w *= maxSize/h; h = maxSize; } }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setPhotoSlot(currentPhotoSlot, dataUrl);
+        };
+        img.src = e.target.result;
       };
-
-      const groupedByYear = filteredPeople.reduce((acc, person) => {
-        const year = getYear(person);
-        if (!acc[year]) acc[year] = [];
-        acc[year].push(person);
-        return acc;
-      }, {});
-
-      const sortedYears = Object.keys(groupedByYear).sort((a, b) => b.localeCompare(a));
-
-      return (
-        <div className="min-h-screen bg-neutral-950 pb-20">
-          {/* Header */}
-          <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-4 py-3 z-40">
-            <div className="flex justify-between items-center">
-              <h1 className="text-xl font-bold text-white">Dating Tracker</h1>
-              <div className="flex gap-2">
-                <label className="px-3 py-1.5 bg-neutral-800 text-neutral-300 rounded-lg text-sm cursor-pointer">
-                  Import
-                  <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
-                </label>
-                <button
-                  onClick={exportCSV}
-                  className="px-3 py-1.5 bg-neutral-800 text-neutral-300 rounded-lg text-sm"
-                >
-                  Export
-                </button>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 mt-3">
-              {['active', 'ended', 'all'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 rounded-lg capitalize text-sm font-medium ${
-                    activeTab === tab ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-400'
-                  }`}
-                >
-                  {tab} ({people.filter(p => 
-                    tab === 'all' ? true : 
-                    tab === 'active' ? (p.status === 'active' || !p.status) : 
-                    p.status === 'ended'
-                  ).length})
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* List */}
-          <div className="p-4">
-            {filteredPeople.length === 0 ? (
-              <div className="text-center text-neutral-500 py-12">No one here yet</div>
-            ) : (
-              sortedYears.map(year => (
-                <div key={year} className="mb-6">
-                  <h2 className="text-lg font-semibold text-neutral-400 mb-3 sticky top-28 bg-neutral-950 py-2">{year}</h2>
-                  <div className="space-y-3">
-                    {groupedByYear[year].map(person => (
-                      <div key={person.id} className="bg-neutral-900 rounded-xl p-4 border border-neutral-800 flex gap-4" onClick={() => editPerson(person)}>
-                        <Avatar person={person} size="md" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold text-white text-lg">{person.name}</h3>
-                              <p className="text-sm text-neutral-500">
-                                {person.platform && `${person.platform} • `}
-                                {person.dateStarted}
-                                {person.dateEnded && ` → ${person.dateEnded}`}
-                              </p>
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deletePerson(person.id); }}
-                              className="text-red-400 text-sm px-2"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                          
-                          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-neutral-400">
-                            <span className="text-yellow-400 text-base">{'★'.repeat(person.interestRating)}{'☆'.repeat(5 - person.interestRating)}</span>
-                            <span>Future: {person.futureLikelihood}/10</span>
-                            {person.metInPerson && <span>{person.numberOfDates} date{person.numberOfDates !== 1 ? 's' : ''}</span>}
-                            {person.endedBy && <span className="text-neutral-500">Ended: {person.endedBy}</span>}
-                          </div>
-
-                          {(person.flags?.green?.length > 0 || person.flags?.yellow?.length > 0 || person.flags?.red?.length > 0) && (
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              {['green', 'yellow', 'red'].map(color =>
-                                (person.flags?.[color] || []).map((flag, i) => (
-                                  <FlagBadge key={`${color}-${i}`} color={color} text={flag} />
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* FAB */}
-          <button
-            onClick={() => { setShowForm(true); setCurrentPerson(emptyPerson); setEditingId(null); }}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg text-3xl flex items-center justify-center z-40"
-          >
-            +
-          </button>
-
-          {/* Form Modal */}
-          {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-80 z-50 overflow-y-auto">
-              <div className="min-h-full bg-neutral-900">
-                <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-4 py-3 flex justify-between items-center z-10">
-                  <button
-                    onClick={() => { setShowForm(false); setEditingId(null); setCurrentPerson(emptyPerson); setRevealedPhotos({}); }}
-                    className="text-blue-400 text-base"
-                  >
-                    Cancel
-                  </button>
-                  <h2 className="font-semibold text-lg text-white">{editingId ? 'Edit' : 'Add'} Person</h2>
-                  <button onClick={savePerson} className="text-blue-400 font-semibold text-base">
-                    Save
-                  </button>
-                </div>
-                
-                <div className="p-4 space-y-5 pb-12">
-                  {/* Photos */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-3">Photos</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[0, 1, 2].map(index => (
-                        <PhotoUpload
-                          key={index}
-                          index={index}
-                          photo={currentPerson.photos?.[index]}
-                          onUpload={handlePhotoUpload}
-                          onRemove={removePhoto}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Basic Info */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={currentPerson.name}
-                      onChange={e => setCurrentPerson({ ...currentPerson, name: e.target.value })}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      placeholder="Name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Platform</label>
-                    <input
-                      type="text"
-                      value={currentPerson.platform}
-                      onChange={e => setCurrentPerson({ ...currentPerson, platform: e.target.value })}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      placeholder="Hinge, Bumble..."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-400 mb-1">Started</label>
-                      <input
-                        type="date"
-                        value={currentPerson.dateStarted}
-                        onChange={e => setCurrentPerson({ ...currentPerson, dateStarted: e.target.value })}
-                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-400 mb-1">Ended</label>
-                      <input
-                        type="date"
-                        value={currentPerson.dateEnded}
-                        onChange={e => setCurrentPerson({ ...currentPerson, dateEnded: e.target.value })}
-                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-2">Status</label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPerson({ ...currentPerson, status: 'active' })}
-                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'active' ? 'bg-blue-600 text-white border-blue-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
-                      >
-                        Active
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPerson({ ...currentPerson, status: 'ended' })}
-                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'ended' ? 'bg-neutral-600 text-white border-neutral-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
-                      >
-                        Ended
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Ratings */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-2">Interest ({currentPerson.interestRating}/5)</label>
-                    <StarRating 
-                      value={currentPerson.interestRating} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, interestRating: v })} 
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-2">Future Likelihood ({currentPerson.futureLikelihood}/10)</label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={currentPerson.futureLikelihood}
-                      onChange={e => setCurrentPerson({ ...currentPerson, futureLikelihood: parseInt(e.target.value) })}
-                      className="w-full h-8"
-                    />
-                  </div>
-
-                  {/* Yes/No Questions */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <YesNo 
-                      label="Met in person?" 
-                      value={currentPerson.metInPerson} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, metInPerson: v })} 
-                    />
-                    {currentPerson.metInPerson && (
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-400 mb-2"># of Dates</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={currentPerson.numberOfDates}
-                          onChange={e => setCurrentPerson({ ...currentPerson, numberOfDates: parseInt(e.target.value) || 0 })}
-                          className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <YesNo 
-                      label="Sex?" 
-                      value={currentPerson.sex} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, sex: v, sexGood: v ? currentPerson.sexGood : null })} 
-                    />
-                    {currentPerson.sex && (
-                      <YesNo 
-                        label="Good?" 
-                        value={currentPerson.sexGood} 
-                        onChange={v => setCurrentPerson({ ...currentPerson, sexGood: v })} 
-                      />
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <YesNo 
-                      label="Physical chemistry?" 
-                      value={currentPerson.physicalChemistry} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, physicalChemistry: v })} 
-                    />
-                    <YesNo 
-                      label="Emotional connection?" 
-                      value={currentPerson.emotionalConnection} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, emotionalConnection: v })} 
-                    />
-                  </div>
-
-                  {/* Ending */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-400 mb-2">Ended by</label>
-                      <select
-                        value={currentPerson.endedBy}
-                        onChange={e => setCurrentPerson({ ...currentPerson, endedBy: e.target.value })}
-                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      >
-                        <option value="">—</option>
-                        <option value="me">Me</option>
-                        <option value="her">Her</option>
-                        <option value="mutual">Mutual</option>
-                        <option value="ghosted">Ghosted</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neutral-400 mb-2">Why</label>
-                      <select
-                        value={currentPerson.whyEnded}
-                        onChange={e => setCurrentPerson({ ...currentPerson, whyEnded: e.target.value })}
-                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      >
-                        <option value="">—</option>
-                        <option value="their-stuff">Their stuff</option>
-                        <option value="my-stuff">My stuff</option>
-                        <option value="mutual">Mutual</option>
-                        <option value="natural">Natural fade</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <YesNo 
-                      label="Saw issues early?" 
-                      value={currentPerson.sawIssuesEarly} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, sawIssuesEarly: v })} 
-                    />
-                    <YesNo 
-                      label="Would swipe again?" 
-                      value={currentPerson.wouldSwipeAgain} 
-                      onChange={v => setCurrentPerson({ ...currentPerson, wouldSwipeAgain: v })} 
-                    />
-                  </div>
-
-                  {/* Flags */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-2">Flags</label>
-                    <div className="flex gap-2 mb-3">
-                      <select
-                        value={currentPerson.newFlag.color}
-                        onChange={e => setCurrentPerson({ 
-                          ...currentPerson, 
-                          newFlag: { ...currentPerson.newFlag, color: e.target.value }
-                        })}
-                        className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      >
-                        <option value="green">🟢</option>
-                        <option value="yellow">🟡</option>
-                        <option value="red">🔴</option>
-                      </select>
-                      <input
-                        type="text"
-                        value={currentPerson.newFlag.text}
-                        onChange={e => setCurrentPerson({
-                          ...currentPerson,
-                          newFlag: { ...currentPerson.newFlag, text: e.target.value }
-                        })}
-                        className="flex-1 p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                        placeholder="Add flag..."
-                      />
-                      <button type="button" onClick={addFlag} className="px-5 py-3 bg-neutral-700 rounded-xl text-xl text-white">+</button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {['green', 'yellow', 'red'].map(color => 
-                        currentPerson.flags[color].map((flag, i) => (
-                          <FlagBadge key={`${color}-${i}`} color={color} text={flag} onRemove={() => removeFlag(color, i)} />
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Text fields */}
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">What drew you?</label>
-                    <textarea
-                      value={currentPerson.whatDrewYou}
-                      onChange={e => setCurrentPerson({ ...currentPerson, whatDrewYou: e.target.value })}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      rows="2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">What did you learn?</label>
-                    <textarea
-                      value={currentPerson.whatLearned}
-                      onChange={e => setCurrentPerson({ ...currentPerson, whatLearned: e.target.value })}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      rows="2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Notes</label>
-                    <textarea
-                      value={currentPerson.notes}
-                      onChange={e => setCurrentPerson({ ...currentPerson, notes: e.target.value })}
-                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-                      rows="3"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<DatingTracker />);
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+    
+    function removePhoto(index) {
+      const slot = document.getElementById(`photoSlot${index}`);
+      slot.innerHTML = `<span class="photo-add">+</span><span class="photo-label">${index === 0 ? 'Main' : 'Private'}</span>`;
+      if (index > 0) slot.classList.add('blurred');
+    }
+    
+    function toggleBlur(index) {
+      const slot = document.getElementById(`photoSlot${index}`);
+      if (slot.querySelector('img')) {
+        slot.classList.toggle('blurred');
+      } else {
+        addPhoto(index);
+      }
+    }
+    
+    // Save entry
+    async function saveEntry(event) {
+      event.preventDefault();
+      
+      const id = document.getElementById('entryId').value || 'entry_' + Date.now();
+      const entry = {
+        id,
+        name: document.getElementById('entryName').value,
+        date: document.getElementById('entryDate').value,
+        source: document.getElementById('entrySource').value,
+        status: document.getElementById('entryStatus').value,
+        notes: document.getElementById('entryNotes').value,
+        photo1: '', photo2: '', photo3: '', // Not syncing actual photos
+        created: editingId ? entries.find(e => e.id === id)?.created : new Date().toISOString(),
+        updated: new Date().toISOString()
+      };
+      
+      // Save photos locally
+      const entryPhotos = [];
+      for (let i = 0; i < 3; i++) {
+        const img = document.getElementById(`photoSlot${i}`).querySelector('img');
+        entryPhotos.push(img ? img.src : null);
+      }
+      photos[id] = entryPhotos;
+      saveLocalPhotos();
+      
+      // Save to Google Sheets
+      try {
+        setSyncStatus('Saving...', 'syncing');
+        await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: editingId ? 'update' : 'add', entry })
+        });
+        await fetchEntries();
+        closeModal();
+      } catch (err) {
+        console.error(err);
+        setSyncStatus('Save failed', 'error');
+      }
+    }
+    
+    // Delete entry
+    async function deleteEntry() {
+      if (!editingId) return;
+      if (!confirm('Delete this entry?')) return;
+      
+      try {
+        setSyncStatus('Deleting...', 'syncing');
+        await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', id: editingId })
+        });
+        delete photos[editingId];
+        saveLocalPhotos();
+        await fetchEntries();
+        closeModal();
+      } catch (err) {
+        console.error(err);
+        setSyncStatus('Delete failed', 'error');
+      }
+    }
+    
+    // Init
+    loadLocalPhotos();
+    fetchEntries();
   </script>
 </body>
 </html>
