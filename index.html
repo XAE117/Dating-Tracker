@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dating Tracker">
-  <meta name="theme-color" content="#3b82f6">
+  <meta name="theme-color" content="#0a0a0a">
   <title>Dating Tracker</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -20,10 +20,31 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
+      background-color: #0a0a0a;
     }
     input, textarea, select { -webkit-user-select: auto; user-select: auto; }
     @media (display-mode: standalone) {
       body { padding-top: env(safe-area-inset-top); }
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      background: #404040;
+      border-radius: 8px;
+      height: 8px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      background: #3b82f6;
+      border-radius: 50%;
+    }
+    .blur-photo {
+      filter: blur(20px);
+      transition: filter 0.3s ease;
+    }
+    .blur-photo.revealed {
+      filter: blur(0);
     }
   </style>
 </head>
@@ -37,6 +58,7 @@
       const [showForm, setShowForm] = useState(false);
       const [editingId, setEditingId] = useState(null);
       const [activeTab, setActiveTab] = useState('active');
+      const [revealedPhotos, setRevealedPhotos] = useState({});
       
       const emptyPerson = {
         id: null,
@@ -61,7 +83,8 @@
         wouldSwipeAgain: null,
         whatDrewYou: '',
         whatLearned: '',
-        notes: ''
+        notes: '',
+        photos: []
       };
       
       const [currentPerson, setCurrentPerson] = useState(emptyPerson);
@@ -75,6 +98,46 @@
         localStorage.setItem('datingTracker', JSON.stringify(people));
       }, [people]);
 
+      const compressImage = (file, maxWidth = 400) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+              canvas.width = img.width * ratio;
+              canvas.height = img.height * ratio;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      const handlePhotoUpload = async (e, index) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const compressed = await compressImage(file);
+        const newPhotos = [...(currentPerson.photos || [])];
+        newPhotos[index] = compressed;
+        setCurrentPerson({ ...currentPerson, photos: newPhotos });
+      };
+
+      const removePhoto = (index) => {
+        const newPhotos = [...(currentPerson.photos || [])];
+        newPhotos[index] = null;
+        setCurrentPerson({ ...currentPerson, photos: newPhotos });
+      };
+
+      const toggleReveal = (photoKey) => {
+        setRevealedPhotos(prev => ({ ...prev, [photoKey]: !prev[photoKey] }));
+      };
+
       const savePerson = () => {
         if (!currentPerson.name.trim()) return;
         if (editingId) {
@@ -85,12 +148,14 @@
         setCurrentPerson(emptyPerson);
         setShowForm(false);
         setEditingId(null);
+        setRevealedPhotos({});
       };
 
       const editPerson = (person) => {
-        setCurrentPerson({ ...emptyPerson, ...person, newFlag: { color: 'green', text: '' } });
+        setCurrentPerson({ ...emptyPerson, ...person, newFlag: { color: 'green', text: '' }, photos: person.photos || [] });
         setEditingId(person.id);
         setShowForm(true);
+        setRevealedPhotos({});
       };
 
       const deletePerson = (id) => {
@@ -120,6 +185,61 @@
             [color]: currentPerson.flags[color].filter((_, i) => i !== index)
           }
         });
+      };
+
+      const importCSV = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target.result;
+          const lines = text.split('\n').filter(l => l.trim());
+          const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+          
+          const imported = [];
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+            const clean = values.map(v => v.replace(/^"|"$/g, '').trim());
+            
+            const yn = (v) => v === 'Yes' ? true : v === 'No' ? false : null;
+            
+            imported.push({
+              id: Date.now() + i,
+              name: clean[0] || '',
+              platform: clean[1] || '',
+              dateStarted: clean[2] || '',
+              dateEnded: clean[3] || '',
+              status: clean[4] || 'active',
+              interestRating: parseInt(clean[5]) || 3,
+              futureLikelihood: parseInt(clean[6]) || 5,
+              metInPerson: yn(clean[7]),
+              numberOfDates: parseInt(clean[8]) || 0,
+              sex: yn(clean[9]),
+              sexGood: yn(clean[10]),
+              physicalChemistry: yn(clean[11]),
+              emotionalConnection: yn(clean[12]),
+              endedBy: clean[13] || '',
+              whyEnded: clean[14] || '',
+              sawIssuesEarly: yn(clean[15]),
+              wouldSwipeAgain: yn(clean[16]),
+              flags: {
+                green: clean[17] ? clean[17].split('; ').filter(f => f) : [],
+                yellow: clean[18] ? clean[18].split('; ').filter(f => f) : [],
+                red: clean[19] ? clean[19].split('; ').filter(f => f) : []
+              },
+              whatDrewYou: clean[20] || '',
+              whatLearned: clean[21] || '',
+              notes: clean[22] || '',
+              photos: []
+            });
+          }
+          
+          if (confirm(`Import ${imported.length} people? This will replace all existing data.`)) {
+            setPeople(imported);
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
       };
 
       const exportCSV = () => {
@@ -173,6 +293,85 @@
         a.click();
       };
 
+      const getInitials = (name) => {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      };
+
+      const Avatar = ({ person, size = 'md' }) => {
+        const sizeClasses = {
+          sm: 'w-10 h-10 text-sm',
+          md: 'w-12 h-12 text-base',
+          lg: 'w-16 h-16 text-lg'
+        };
+        
+        const photo = person.photos?.[0];
+        
+        if (photo) {
+          return (
+            <img 
+              src={photo} 
+              alt={person.name}
+              className={`${sizeClasses[size]} rounded-full object-cover border-2 border-neutral-700`}
+            />
+          );
+        }
+        
+        return (
+          <div className={`${sizeClasses[size]} rounded-full bg-neutral-700 flex items-center justify-center text-neutral-300 font-medium border-2 border-neutral-600`}>
+            {getInitials(person.name)}
+          </div>
+        );
+      };
+
+      const PhotoUpload = ({ index, photo, onUpload, onRemove }) => {
+        const isHidden = index > 0;
+        const photoKey = `photo-${index}`;
+        const isRevealed = revealedPhotos[photoKey];
+        
+        return (
+          <div className="relative">
+            <label className="block text-sm font-medium text-neutral-400 mb-2">
+              Photo {index + 1} {isHidden && '(hidden)'}
+            </label>
+            {photo ? (
+              <div className="relative">
+                <img 
+                  src={photo}
+                  alt={`Photo ${index + 1}`}
+                  className={`w-full h-32 object-cover rounded-xl ${isHidden && !isRevealed ? 'blur-photo' : ''}`}
+                  onClick={() => isHidden && toggleReveal(photoKey)}
+                />
+                {isHidden && !isRevealed && (
+                  <div 
+                    className="absolute inset-0 flex items-center justify-center text-neutral-400 text-sm cursor-pointer"
+                    onClick={() => toggleReveal(photoKey)}
+                  >
+                    Tap to reveal
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemove(index)}
+                  className="absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-60 rounded-full text-white text-lg flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <label className="block w-full h-32 bg-neutral-800 border-2 border-dashed border-neutral-600 rounded-xl flex items-center justify-center cursor-pointer">
+                <span className="text-neutral-500">+ Add photo</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => onUpload(e, index)} 
+                  className="hidden" 
+                />
+              </label>
+            )}
+          </div>
+        );
+      };
+
       const StarRating = ({ value, onChange }) => (
         <div className="flex gap-1">
           {[1,2,3,4,5].map(i => (
@@ -180,7 +379,7 @@
               key={i}
               type="button"
               onClick={() => onChange(i)}
-              className={`text-3xl ${i <= value ? 'text-yellow-400' : 'text-gray-300'}`}
+              className={`text-3xl ${i <= value ? 'text-yellow-400' : 'text-neutral-600'}`}
             >
               ★
             </button>
@@ -190,19 +389,19 @@
 
       const YesNo = ({ value, onChange, label }) => (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+          <label className="block text-sm font-medium text-neutral-400 mb-2">{label}</label>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => onChange(true)}
-              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === true ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-700 border-gray-300'}`}
+              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === true ? 'bg-green-600 text-white border-green-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
             >
               Yes
             </button>
             <button
               type="button"
               onClick={() => onChange(false)}
-              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === false ? 'bg-red-400 text-white border-red-400' : 'bg-white text-gray-700 border-gray-300'}`}
+              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === false ? 'bg-red-600 text-white border-red-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
             >
               No
             </button>
@@ -212,15 +411,15 @@
 
       const FlagBadge = ({ color, text, onRemove }) => {
         const colors = {
-          green: 'bg-green-100 text-green-800 border-green-300',
-          yellow: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-          red: 'bg-red-100 text-red-800 border-red-300'
+          green: 'bg-green-900 text-green-300 border-green-700',
+          yellow: 'bg-yellow-900 text-yellow-300 border-yellow-700',
+          red: 'bg-red-900 text-red-300 border-red-700'
         };
         return (
           <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border ${colors[color]}`}>
             {text}
             {onRemove && (
-              <button type="button" onClick={onRemove} className="ml-1 text-lg leading-none">&times;</button>
+              <button type="button" onClick={onRemove} className="ml-1 text-lg leading-none opacity-70">&times;</button>
             )}
           </span>
         );
@@ -232,18 +431,39 @@
         return true;
       });
 
+      const getYear = (person) => {
+        const date = person.dateStarted || person.dateEnded;
+        if (!date) return 'Unknown';
+        return date.split('-')[0];
+      };
+
+      const groupedByYear = filteredPeople.reduce((acc, person) => {
+        const year = getYear(person);
+        if (!acc[year]) acc[year] = [];
+        acc[year].push(person);
+        return acc;
+      }, {});
+
+      const sortedYears = Object.keys(groupedByYear).sort((a, b) => b.localeCompare(a));
+
       return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-neutral-950 pb-20">
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b px-4 py-3 z-40">
+          <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-4 py-3 z-40">
             <div className="flex justify-between items-center">
-              <h1 className="text-xl font-bold text-gray-800">Dating Tracker</h1>
-              <button
-                onClick={exportCSV}
-                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm"
-              >
-                Export
-              </button>
+              <h1 className="text-xl font-bold text-white">Dating Tracker</h1>
+              <div className="flex gap-2">
+                <label className="px-3 py-1.5 bg-neutral-800 text-neutral-300 rounded-lg text-sm cursor-pointer">
+                  Import
+                  <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+                </label>
+                <button
+                  onClick={exportCSV}
+                  className="px-3 py-1.5 bg-neutral-800 text-neutral-300 rounded-lg text-sm"
+                >
+                  Export
+                </button>
+              </div>
             </div>
             
             <div className="flex gap-2 mt-3">
@@ -252,7 +472,7 @@
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 py-2 rounded-lg capitalize text-sm font-medium ${
-                    activeTab === tab ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
+                    activeTab === tab ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-400'
                   }`}
                 >
                   {tab} ({people.filter(p => 
@@ -266,45 +486,55 @@
           </div>
 
           {/* List */}
-          <div className="p-4 space-y-3">
+          <div className="p-4">
             {filteredPeople.length === 0 ? (
-              <div className="text-center text-gray-500 py-12">No one here yet</div>
+              <div className="text-center text-neutral-500 py-12">No one here yet</div>
             ) : (
-              filteredPeople.map(person => (
-                <div key={person.id} className="bg-white rounded-xl p-4 shadow-sm border" onClick={() => editPerson(person)}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-800 text-lg">{person.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {person.platform && `${person.platform} • `}
-                        {person.dateStarted}
-                        {person.dateEnded && ` → ${person.dateEnded}`}
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deletePerson(person.id); }}
-                      className="text-red-400 text-sm px-2"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                    <span className="text-yellow-500 text-base">{'★'.repeat(person.interestRating)}{'☆'.repeat(5 - person.interestRating)}</span>
-                    <span>Future: {person.futureLikelihood}/10</span>
-                    {person.metInPerson && <span>{person.numberOfDates} date{person.numberOfDates !== 1 ? 's' : ''}</span>}
-                    {person.endedBy && <span className="text-gray-500">Ended: {person.endedBy}</span>}
-                  </div>
+              sortedYears.map(year => (
+                <div key={year} className="mb-6">
+                  <h2 className="text-lg font-semibold text-neutral-400 mb-3 sticky top-28 bg-neutral-950 py-2">{year}</h2>
+                  <div className="space-y-3">
+                    {groupedByYear[year].map(person => (
+                      <div key={person.id} className="bg-neutral-900 rounded-xl p-4 border border-neutral-800 flex gap-4" onClick={() => editPerson(person)}>
+                        <Avatar person={person} size="md" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-semibold text-white text-lg">{person.name}</h3>
+                              <p className="text-sm text-neutral-500">
+                                {person.platform && `${person.platform} • `}
+                                {person.dateStarted}
+                                {person.dateEnded && ` → ${person.dateEnded}`}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deletePerson(person.id); }}
+                              className="text-red-400 text-sm px-2"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          
+                          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-neutral-400">
+                            <span className="text-yellow-400 text-base">{'★'.repeat(person.interestRating)}{'☆'.repeat(5 - person.interestRating)}</span>
+                            <span>Future: {person.futureLikelihood}/10</span>
+                            {person.metInPerson && <span>{person.numberOfDates} date{person.numberOfDates !== 1 ? 's' : ''}</span>}
+                            {person.endedBy && <span className="text-neutral-500">Ended: {person.endedBy}</span>}
+                          </div>
 
-                  {(person.flags?.green?.length > 0 || person.flags?.yellow?.length > 0 || person.flags?.red?.length > 0) && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {['green', 'yellow', 'red'].map(color =>
-                        (person.flags?.[color] || []).map((flag, i) => (
-                          <FlagBadge key={`${color}-${i}`} color={color} text={flag} />
-                        ))
-                      )}
-                    </div>
-                  )}
+                          {(person.flags?.green?.length > 0 || person.flags?.yellow?.length > 0 || person.flags?.red?.length > 0) && (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {['green', 'yellow', 'red'].map(color =>
+                                (person.flags?.[color] || []).map((flag, i) => (
+                                  <FlagBadge key={`${color}-${i}`} color={color} text={flag} />
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))
             )}
@@ -313,87 +543,103 @@
           {/* FAB */}
           <button
             onClick={() => { setShowForm(true); setCurrentPerson(emptyPerson); setEditingId(null); }}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg text-3xl flex items-center justify-center z-40"
+            className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg text-3xl flex items-center justify-center z-40"
           >
             +
           </button>
 
           {/* Form Modal */}
           {showForm && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-              <div className="min-h-full bg-white">
-                <div className="sticky top-0 bg-white border-b px-4 py-3 flex justify-between items-center z-10">
+            <div className="fixed inset-0 bg-black bg-opacity-80 z-50 overflow-y-auto">
+              <div className="min-h-full bg-neutral-900">
+                <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 px-4 py-3 flex justify-between items-center z-10">
                   <button
-                    onClick={() => { setShowForm(false); setEditingId(null); setCurrentPerson(emptyPerson); }}
-                    className="text-blue-500 text-base"
+                    onClick={() => { setShowForm(false); setEditingId(null); setCurrentPerson(emptyPerson); setRevealedPhotos({}); }}
+                    className="text-blue-400 text-base"
                   >
                     Cancel
                   </button>
-                  <h2 className="font-semibold text-lg">{editingId ? 'Edit' : 'Add'} Person</h2>
-                  <button onClick={savePerson} className="text-blue-500 font-semibold text-base">
+                  <h2 className="font-semibold text-lg text-white">{editingId ? 'Edit' : 'Add'} Person</h2>
+                  <button onClick={savePerson} className="text-blue-400 font-semibold text-base">
                     Save
                   </button>
                 </div>
                 
                 <div className="p-4 space-y-5 pb-12">
+                  {/* Photos */}
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-400 mb-3">Photos</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[0, 1, 2].map(index => (
+                        <PhotoUpload
+                          key={index}
+                          index={index}
+                          photo={currentPerson.photos?.[index]}
+                          onUpload={handlePhotoUpload}
+                          onRemove={removePhoto}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Basic Info */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-1">Name</label>
                     <input
                       type="text"
                       value={currentPerson.name}
                       onChange={e => setCurrentPerson({ ...currentPerson, name: e.target.value })}
-                      className="w-full p-3 border rounded-xl text-base"
+                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       placeholder="Name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-1">Platform</label>
                     <input
                       type="text"
                       value={currentPerson.platform}
                       onChange={e => setCurrentPerson({ ...currentPerson, platform: e.target.value })}
-                      className="w-full p-3 border rounded-xl text-base"
+                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       placeholder="Hinge, Bumble..."
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Started</label>
+                      <label className="block text-sm font-medium text-neutral-400 mb-1">Started</label>
                       <input
                         type="date"
                         value={currentPerson.dateStarted}
                         onChange={e => setCurrentPerson({ ...currentPerson, dateStarted: e.target.value })}
-                        className="w-full p-3 border rounded-xl text-base"
+                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ended</label>
+                      <label className="block text-sm font-medium text-neutral-400 mb-1">Ended</label>
                       <input
                         type="date"
                         value={currentPerson.dateEnded}
                         onChange={e => setCurrentPerson({ ...currentPerson, dateEnded: e.target.value })}
-                        className="w-full p-3 border rounded-xl text-base"
+                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-2">Status</label>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setCurrentPerson({ ...currentPerson, status: 'active' })}
-                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'active' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white border-gray-300'}`}
+                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'active' ? 'bg-blue-600 text-white border-blue-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
                       >
                         Active
                       </button>
                       <button
                         type="button"
                         onClick={() => setCurrentPerson({ ...currentPerson, status: 'ended' })}
-                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'ended' ? 'bg-gray-500 text-white border-gray-500' : 'bg-white border-gray-300'}`}
+                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'ended' ? 'bg-neutral-600 text-white border-neutral-600' : 'bg-neutral-800 text-neutral-400 border-neutral-700'}`}
                       >
                         Ended
                       </button>
@@ -402,7 +648,7 @@
 
                   {/* Ratings */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Interest ({currentPerson.interestRating}/5)</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-2">Interest ({currentPerson.interestRating}/5)</label>
                     <StarRating 
                       value={currentPerson.interestRating} 
                       onChange={v => setCurrentPerson({ ...currentPerson, interestRating: v })} 
@@ -410,7 +656,7 @@
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Future Likelihood ({currentPerson.futureLikelihood}/10)</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-2">Future Likelihood ({currentPerson.futureLikelihood}/10)</label>
                     <input
                       type="range"
                       min="1"
@@ -430,13 +676,13 @@
                     />
                     {currentPerson.metInPerson && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2"># of Dates</label>
+                        <label className="block text-sm font-medium text-neutral-400 mb-2"># of Dates</label>
                         <input
                           type="number"
                           min="0"
                           value={currentPerson.numberOfDates}
                           onChange={e => setCurrentPerson({ ...currentPerson, numberOfDates: parseInt(e.target.value) || 0 })}
-                          className="w-full p-3 border rounded-xl text-base"
+                          className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                         />
                       </div>
                     )}
@@ -473,11 +719,11 @@
                   {/* Ending */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ended by</label>
+                      <label className="block text-sm font-medium text-neutral-400 mb-2">Ended by</label>
                       <select
                         value={currentPerson.endedBy}
                         onChange={e => setCurrentPerson({ ...currentPerson, endedBy: e.target.value })}
-                        className="w-full p-3 border rounded-xl text-base bg-white"
+                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       >
                         <option value="">—</option>
                         <option value="me">Me</option>
@@ -487,11 +733,11 @@
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Why</label>
+                      <label className="block text-sm font-medium text-neutral-400 mb-2">Why</label>
                       <select
                         value={currentPerson.whyEnded}
                         onChange={e => setCurrentPerson({ ...currentPerson, whyEnded: e.target.value })}
-                        className="w-full p-3 border rounded-xl text-base bg-white"
+                        className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       >
                         <option value="">—</option>
                         <option value="their-stuff">Their stuff</option>
@@ -517,7 +763,7 @@
 
                   {/* Flags */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Flags</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-2">Flags</label>
                     <div className="flex gap-2 mb-3">
                       <select
                         value={currentPerson.newFlag.color}
@@ -525,7 +771,7 @@
                           ...currentPerson, 
                           newFlag: { ...currentPerson.newFlag, color: e.target.value }
                         })}
-                        className="p-3 border rounded-xl text-base bg-white"
+                        className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       >
                         <option value="green">🟢</option>
                         <option value="yellow">🟡</option>
@@ -538,10 +784,10 @@
                           ...currentPerson,
                           newFlag: { ...currentPerson.newFlag, text: e.target.value }
                         })}
-                        className="flex-1 p-3 border rounded-xl text-base"
+                        className="flex-1 p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                         placeholder="Add flag..."
                       />
-                      <button type="button" onClick={addFlag} className="px-5 py-3 bg-gray-100 rounded-xl text-xl">+</button>
+                      <button type="button" onClick={addFlag} className="px-5 py-3 bg-neutral-700 rounded-xl text-xl text-white">+</button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {['green', 'yellow', 'red'].map(color => 
@@ -554,31 +800,31 @@
 
                   {/* Text fields */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">What drew you?</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-1">What drew you?</label>
                     <textarea
                       value={currentPerson.whatDrewYou}
                       onChange={e => setCurrentPerson({ ...currentPerson, whatDrewYou: e.target.value })}
-                      className="w-full p-3 border rounded-xl text-base"
+                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       rows="2"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">What did you learn?</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-1">What did you learn?</label>
                     <textarea
                       value={currentPerson.whatLearned}
                       onChange={e => setCurrentPerson({ ...currentPerson, whatLearned: e.target.value })}
-                      className="w-full p-3 border rounded-xl text-base"
+                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       rows="2"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <label className="block text-sm font-medium text-neutral-400 mb-1">Notes</label>
                     <textarea
                       value={currentPerson.notes}
                       onChange={e => setCurrentPerson({ ...currentPerson, notes: e.target.value })}
-                      className="w-full p-3 border rounded-xl text-base"
+                      className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
                       rows="3"
                     />
                   </div>
