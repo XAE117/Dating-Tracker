@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dating Tracker">
+  <meta name="theme-color" content="#3b82f6">
+  <title>Dating Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { 
+      -webkit-user-select: none; 
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+    input, textarea, select { -webkit-user-select: auto; user-select: auto; }
+    @media (display-mode: standalone) {
+      body { padding-top: env(safe-area-inset-top); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const DatingTracker = () => {
+      const [people, setPeople] = useState([]);
+      const [showForm, setShowForm] = useState(false);
+      const [editingId, setEditingId] = useState(null);
+      const [activeTab, setActiveTab] = useState('active');
+      
+      const emptyPerson = {
+        id: null,
+        name: '',
+        platform: '',
+        dateStarted: '',
+        dateEnded: '',
+        interestRating: 3,
+        futureLikelihood: 5,
+        flags: { green: [], yellow: [], red: [] },
+        newFlag: { color: 'green', text: '' },
+        status: 'active',
+        metInPerson: null,
+        numberOfDates: 0,
+        sex: null,
+        sexGood: null,
+        physicalChemistry: null,
+        emotionalConnection: null,
+        endedBy: '',
+        whyEnded: '',
+        sawIssuesEarly: null,
+        wouldSwipeAgain: null,
+        whatDrewYou: '',
+        whatLearned: '',
+        notes: ''
+      };
+      
+      const [currentPerson, setCurrentPerson] = useState(emptyPerson);
+
+      useEffect(() => {
+        const saved = localStorage.getItem('datingTracker');
+        if (saved) setPeople(JSON.parse(saved));
+      }, []);
+
+      useEffect(() => {
+        localStorage.setItem('datingTracker', JSON.stringify(people));
+      }, [people]);
+
+      const savePerson = () => {
+        if (!currentPerson.name.trim()) return;
+        if (editingId) {
+          setPeople(people.map(p => p.id === editingId ? { ...currentPerson, id: editingId } : p));
+        } else {
+          setPeople([...people, { ...currentPerson, id: Date.now() }]);
+        }
+        setCurrentPerson(emptyPerson);
+        setShowForm(false);
+        setEditingId(null);
+      };
+
+      const editPerson = (person) => {
+        setCurrentPerson({ ...emptyPerson, ...person, newFlag: { color: 'green', text: '' } });
+        setEditingId(person.id);
+        setShowForm(true);
+      };
+
+      const deletePerson = (id) => {
+        if (confirm('Delete this person?')) {
+          setPeople(people.filter(p => p.id !== id));
+        }
+      };
+
+      const addFlag = () => {
+        if (!currentPerson.newFlag.text.trim()) return;
+        const color = currentPerson.newFlag.color;
+        setCurrentPerson({
+          ...currentPerson,
+          flags: {
+            ...currentPerson.flags,
+            [color]: [...currentPerson.flags[color], currentPerson.newFlag.text]
+          },
+          newFlag: { color: 'green', text: '' }
+        });
+      };
+
+      const removeFlag = (color, index) => {
+        setCurrentPerson({
+          ...currentPerson,
+          flags: {
+            ...currentPerson.flags,
+            [color]: currentPerson.flags[color].filter((_, i) => i !== index)
+          }
+        });
+      };
+
+      const exportCSV = () => {
+        const headers = [
+          'Name', 'Platform', 'Date Started', 'Date Ended', 'Status',
+          'Interest (1-5)', 'Future Likelihood (1-10)', 
+          'Met In Person', 'Number of Dates', 'Sex', 'Sex Good',
+          'Physical Chemistry', 'Emotional Connection',
+          'Ended By', 'Why Ended', 'Saw Issues Early', 'Would Swipe Again',
+          'Green Flags', 'Yellow Flags', 'Red Flags',
+          'What Drew You', 'What Learned', 'Notes'
+        ];
+        
+        const yn = (v) => v === true ? 'Yes' : v === false ? 'No' : '';
+        
+        const rows = people.map(p => [
+          p.name,
+          p.platform || '',
+          p.dateStarted || '',
+          p.dateEnded || '',
+          p.status || 'active',
+          p.interestRating,
+          p.futureLikelihood,
+          yn(p.metInPerson),
+          p.numberOfDates || 0,
+          yn(p.sex),
+          yn(p.sexGood),
+          yn(p.physicalChemistry),
+          yn(p.emotionalConnection),
+          p.endedBy || '',
+          p.whyEnded || '',
+          yn(p.sawIssuesEarly),
+          yn(p.wouldSwipeAgain),
+          (p.flags?.green || []).join('; '),
+          (p.flags?.yellow || []).join('; '),
+          (p.flags?.red || []).join('; '),
+          p.whatDrewYou || '',
+          p.whatLearned || '',
+          p.notes || ''
+        ]);
+        
+        const csvContent = [headers, ...rows]
+          .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+          .join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dating-tracker-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+      };
+
+      const StarRating = ({ value, onChange }) => (
+        <div className="flex gap-1">
+          {[1,2,3,4,5].map(i => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChange(i)}
+              className={`text-3xl ${i <= value ? 'text-yellow-400' : 'text-gray-300'}`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      );
+
+      const YesNo = ({ value, onChange, label }) => (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onChange(true)}
+              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === true ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-700 border-gray-300'}`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(false)}
+              className={`flex-1 py-3 rounded-lg border text-base font-medium ${value === false ? 'bg-red-400 text-white border-red-400' : 'bg-white text-gray-700 border-gray-300'}`}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      );
+
+      const FlagBadge = ({ color, text, onRemove }) => {
+        const colors = {
+          green: 'bg-green-100 text-green-800 border-green-300',
+          yellow: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+          red: 'bg-red-100 text-red-800 border-red-300'
+        };
+        return (
+          <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border ${colors[color]}`}>
+            {text}
+            {onRemove && (
+              <button type="button" onClick={onRemove} className="ml-1 text-lg leading-none">&times;</button>
+            )}
+          </span>
+        );
+      };
+
+      const filteredPeople = people.filter(p => {
+        if (activeTab === 'active') return p.status === 'active' || !p.status;
+        if (activeTab === 'ended') return p.status === 'ended';
+        return true;
+      });
+
+      return (
+        <div className="min-h-screen bg-gray-50 pb-20">
+          {/* Header */}
+          <div className="sticky top-0 bg-white border-b px-4 py-3 z-40">
+            <div className="flex justify-between items-center">
+              <h1 className="text-xl font-bold text-gray-800">Dating Tracker</h1>
+              <button
+                onClick={exportCSV}
+                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm"
+              >
+                Export
+              </button>
+            </div>
+            
+            <div className="flex gap-2 mt-3">
+              {['active', 'ended', 'all'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 rounded-lg capitalize text-sm font-medium ${
+                    activeTab === tab ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {tab} ({people.filter(p => 
+                    tab === 'all' ? true : 
+                    tab === 'active' ? (p.status === 'active' || !p.status) : 
+                    p.status === 'ended'
+                  ).length})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="p-4 space-y-3">
+            {filteredPeople.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">No one here yet</div>
+            ) : (
+              filteredPeople.map(person => (
+                <div key={person.id} className="bg-white rounded-xl p-4 shadow-sm border" onClick={() => editPerson(person)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-800 text-lg">{person.name}</h3>
+                      <p className="text-sm text-gray-500">
+                        {person.platform && `${person.platform} • `}
+                        {person.dateStarted}
+                        {person.dateEnded && ` → ${person.dateEnded}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deletePerson(person.id); }}
+                      className="text-red-400 text-sm px-2"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                  
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                    <span className="text-yellow-500 text-base">{'★'.repeat(person.interestRating)}{'☆'.repeat(5 - person.interestRating)}</span>
+                    <span>Future: {person.futureLikelihood}/10</span>
+                    {person.metInPerson && <span>{person.numberOfDates} date{person.numberOfDates !== 1 ? 's' : ''}</span>}
+                    {person.endedBy && <span className="text-gray-500">Ended: {person.endedBy}</span>}
+                  </div>
+
+                  {(person.flags?.green?.length > 0 || person.flags?.yellow?.length > 0 || person.flags?.red?.length > 0) && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {['green', 'yellow', 'red'].map(color =>
+                        (person.flags?.[color] || []).map((flag, i) => (
+                          <FlagBadge key={`${color}-${i}`} color={color} text={flag} />
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* FAB */}
+          <button
+            onClick={() => { setShowForm(true); setCurrentPerson(emptyPerson); setEditingId(null); }}
+            className="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg text-3xl flex items-center justify-center z-40"
+          >
+            +
+          </button>
+
+          {/* Form Modal */}
+          {showForm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+              <div className="min-h-full bg-white">
+                <div className="sticky top-0 bg-white border-b px-4 py-3 flex justify-between items-center z-10">
+                  <button
+                    onClick={() => { setShowForm(false); setEditingId(null); setCurrentPerson(emptyPerson); }}
+                    className="text-blue-500 text-base"
+                  >
+                    Cancel
+                  </button>
+                  <h2 className="font-semibold text-lg">{editingId ? 'Edit' : 'Add'} Person</h2>
+                  <button onClick={savePerson} className="text-blue-500 font-semibold text-base">
+                    Save
+                  </button>
+                </div>
+                
+                <div className="p-4 space-y-5 pb-12">
+                  {/* Basic Info */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={currentPerson.name}
+                      onChange={e => setCurrentPerson({ ...currentPerson, name: e.target.value })}
+                      className="w-full p-3 border rounded-xl text-base"
+                      placeholder="Name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+                    <input
+                      type="text"
+                      value={currentPerson.platform}
+                      onChange={e => setCurrentPerson({ ...currentPerson, platform: e.target.value })}
+                      className="w-full p-3 border rounded-xl text-base"
+                      placeholder="Hinge, Bumble..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Started</label>
+                      <input
+                        type="date"
+                        value={currentPerson.dateStarted}
+                        onChange={e => setCurrentPerson({ ...currentPerson, dateStarted: e.target.value })}
+                        className="w-full p-3 border rounded-xl text-base"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ended</label>
+                      <input
+                        type="date"
+                        value={currentPerson.dateEnded}
+                        onChange={e => setCurrentPerson({ ...currentPerson, dateEnded: e.target.value })}
+                        className="w-full p-3 border rounded-xl text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPerson({ ...currentPerson, status: 'active' })}
+                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'active' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white border-gray-300'}`}
+                      >
+                        Active
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPerson({ ...currentPerson, status: 'ended' })}
+                        className={`flex-1 py-3 rounded-xl border text-base font-medium ${currentPerson.status === 'ended' ? 'bg-gray-500 text-white border-gray-500' : 'bg-white border-gray-300'}`}
+                      >
+                        Ended
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Ratings */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Interest ({currentPerson.interestRating}/5)</label>
+                    <StarRating 
+                      value={currentPerson.interestRating} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, interestRating: v })} 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Future Likelihood ({currentPerson.futureLikelihood}/10)</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={currentPerson.futureLikelihood}
+                      onChange={e => setCurrentPerson({ ...currentPerson, futureLikelihood: parseInt(e.target.value) })}
+                      className="w-full h-8"
+                    />
+                  </div>
+
+                  {/* Yes/No Questions */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <YesNo 
+                      label="Met in person?" 
+                      value={currentPerson.metInPerson} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, metInPerson: v })} 
+                    />
+                    {currentPerson.metInPerson && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2"># of Dates</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={currentPerson.numberOfDates}
+                          onChange={e => setCurrentPerson({ ...currentPerson, numberOfDates: parseInt(e.target.value) || 0 })}
+                          className="w-full p-3 border rounded-xl text-base"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <YesNo 
+                      label="Sex?" 
+                      value={currentPerson.sex} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, sex: v, sexGood: v ? currentPerson.sexGood : null })} 
+                    />
+                    {currentPerson.sex && (
+                      <YesNo 
+                        label="Good?" 
+                        value={currentPerson.sexGood} 
+                        onChange={v => setCurrentPerson({ ...currentPerson, sexGood: v })} 
+                      />
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <YesNo 
+                      label="Physical chemistry?" 
+                      value={currentPerson.physicalChemistry} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, physicalChemistry: v })} 
+                    />
+                    <YesNo 
+                      label="Emotional connection?" 
+                      value={currentPerson.emotionalConnection} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, emotionalConnection: v })} 
+                    />
+                  </div>
+
+                  {/* Ending */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ended by</label>
+                      <select
+                        value={currentPerson.endedBy}
+                        onChange={e => setCurrentPerson({ ...currentPerson, endedBy: e.target.value })}
+                        className="w-full p-3 border rounded-xl text-base bg-white"
+                      >
+                        <option value="">—</option>
+                        <option value="me">Me</option>
+                        <option value="her">Her</option>
+                        <option value="mutual">Mutual</option>
+                        <option value="ghosted">Ghosted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Why</label>
+                      <select
+                        value={currentPerson.whyEnded}
+                        onChange={e => setCurrentPerson({ ...currentPerson, whyEnded: e.target.value })}
+                        className="w-full p-3 border rounded-xl text-base bg-white"
+                      >
+                        <option value="">—</option>
+                        <option value="their-stuff">Their stuff</option>
+                        <option value="my-stuff">My stuff</option>
+                        <option value="mutual">Mutual</option>
+                        <option value="natural">Natural fade</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <YesNo 
+                      label="Saw issues early?" 
+                      value={currentPerson.sawIssuesEarly} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, sawIssuesEarly: v })} 
+                    />
+                    <YesNo 
+                      label="Would swipe again?" 
+                      value={currentPerson.wouldSwipeAgain} 
+                      onChange={v => setCurrentPerson({ ...currentPerson, wouldSwipeAgain: v })} 
+                    />
+                  </div>
+
+                  {/* Flags */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flags</label>
+                    <div className="flex gap-2 mb-3">
+                      <select
+                        value={currentPerson.newFlag.color}
+                        onChange={e => setCurrentPerson({ 
+                          ...currentPerson, 
+                          newFlag: { ...currentPerson.newFlag, color: e.target.value }
+                        })}
+                        className="p-3 border rounded-xl text-base bg-white"
+                      >
+                        <option value="green">🟢</option>
+                        <option value="yellow">🟡</option>
+                        <option value="red">🔴</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={currentPerson.newFlag.text}
+                        onChange={e => setCurrentPerson({
+                          ...currentPerson,
+                          newFlag: { ...currentPerson.newFlag, text: e.target.value }
+                        })}
+                        className="flex-1 p-3 border rounded-xl text-base"
+                        placeholder="Add flag..."
+                      />
+                      <button type="button" onClick={addFlag} className="px-5 py-3 bg-gray-100 rounded-xl text-xl">+</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {['green', 'yellow', 'red'].map(color => 
+                        currentPerson.flags[color].map((flag, i) => (
+                          <FlagBadge key={`${color}-${i}`} color={color} text={flag} onRemove={() => removeFlag(color, i)} />
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Text fields */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">What drew you?</label>
+                    <textarea
+                      value={currentPerson.whatDrewYou}
+                      onChange={e => setCurrentPerson({ ...currentPerson, whatDrewYou: e.target.value })}
+                      className="w-full p-3 border rounded-xl text-base"
+                      rows="2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">What did you learn?</label>
+                    <textarea
+                      value={currentPerson.whatLearned}
+                      onChange={e => setCurrentPerson({ ...currentPerson, whatLearned: e.target.value })}
+                      className="w-full p-3 border rounded-xl text-base"
+                      rows="2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea
+                      value={currentPerson.notes}
+                      onChange={e => setCurrentPerson({ ...currentPerson, notes: e.target.value })}
+                      className="w-full p-3 border rounded-xl text-base"
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<DatingTracker />);
+  </script>
+</body>
+</html>
