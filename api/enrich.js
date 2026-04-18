@@ -1,6 +1,9 @@
 const NOTION_KEY = process.env.NOTION_API_KEY;
-const CRM_DB_ID = process.env.CONTACT_CRM_DB_ID || '7993e9e9-7df6-4c31-b4e4-c38ed3925271';
+const CRM_DB_ID = process.env.CONTACT_CRM_DB_ID;
 const NOTION_VERSION = '2022-06-28';
+
+if (!NOTION_KEY) throw new Error('NOTION_API_KEY env var is required');
+if (!CRM_DB_ID) throw new Error('CONTACT_CRM_DB_ID env var is required');
 
 async function notionFetch(endpoint, method = 'GET', body = null) {
   const opts = {
@@ -21,7 +24,8 @@ async function notionFetch(endpoint, method = 'GET', body = null) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://dating-tracker.vercel.app';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
