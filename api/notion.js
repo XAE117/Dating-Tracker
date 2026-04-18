@@ -1,6 +1,9 @@
 const NOTION_KEY = process.env.NOTION_API_KEY;
-const DB_ID = process.env.DATING_TRACKER_DB_ID || '5cb32148-a54e-4361-94f3-db70ba1535aa';
+const DB_ID = process.env.DATING_TRACKER_DB_ID;
 const NOTION_VERSION = '2022-06-28';
+
+if (!NOTION_KEY) throw new Error('NOTION_API_KEY env var is required');
+if (!DB_ID) throw new Error('DATING_TRACKER_DB_ID env var is required');
 
 const VALID_ACTIONS = ['create', 'update', 'archive', 'query'];
 const UUID_RE = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
@@ -41,7 +44,8 @@ async function queryAll() {
 
 export default async function handler(req, res) {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://dating-tracker.vercel.app';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();

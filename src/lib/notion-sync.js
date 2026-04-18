@@ -12,7 +12,7 @@ function toNotion(person) {
     'Met In Person': { checkbox: person.metInPerson === true },
     'Number of Dates': { number: person.numberOfDates || null },
     Sex: { checkbox: person.sex === true },
-    'Sex Good': { checkbox: person.sexGood > 0 },
+    'Sex Good': { number: person.sexGood > 0 ? person.sexGood : null },
     'Physical Chemistry': { checkbox: person.physicalChemistry === true },
     'Emotional Connection': { checkbox: person.emotionalConnection === true },
     'Ended By': person.endedBy ? { select: { name: capitalize(person.endedBy) } } : { select: null },
@@ -50,7 +50,7 @@ function fromNotion(page) {
     metInPerson: p['Met In Person']?.checkbox || false,
     numberOfDates: p['Number of Dates']?.number || 0,
     sex: p.Sex?.checkbox || false,
-    sexGood: p['Sex Good']?.checkbox ? 4 : 0,
+    sexGood: p['Sex Good']?.number ?? (p['Sex Good']?.checkbox ? 4 : 0),
     physicalChemistry: p['Physical Chemistry']?.checkbox || false,
     emotionalConnection: p['Emotional Connection']?.checkbox || false,
     endedBy: (getSelect(p['Ended By']) || '').toLowerCase(),
@@ -101,7 +101,11 @@ export function mergeEntries(local, remote) {
     // Compare timestamps — keep whichever is newer
     const localTime = loc.lastEdited ? new Date(loc.lastEdited).getTime() : 0;
     const remoteTime = rem.lastEdited ? new Date(rem.lastEdited).getTime() : 0;
-    result.push(remoteTime >= localTime ? rem : loc);
+    const winner = remoteTime >= localTime ? rem : loc;
+    const loser = remoteTime >= localTime ? loc : rem;
+    // Notion can't store base64 photo URLs — preserve local photoUrl if remote lost it
+    const photoUrl = winner.photoUrl || loser.photoUrl;
+    result.push(photoUrl !== winner.photoUrl ? { ...winner, photoUrl } : winner);
   }
 
   // Add remote entries not in local
