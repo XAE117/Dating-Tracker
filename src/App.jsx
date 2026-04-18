@@ -100,7 +100,7 @@ export default function App() {
     }
 
     setSaving(true);
-    const personData = { ...currentPerson };
+    const personData = { ...currentPerson, lastEdited: new Date().toISOString() };
     delete personData.newFlag;
 
     try {
@@ -111,7 +111,6 @@ export default function App() {
         setCurrentPerson(emptyPerson);
         await updateEntry(currentPerson.notionId, personData);
         showToast('Updated', 'success');
-        syncFromNotion();
       } else if (editingId) {
         setPeople(prev => prev.map(p => p.id === editingId ? { ...personData, id: editingId } : p));
         setShowForm(false);
@@ -126,7 +125,8 @@ export default function App() {
         setCurrentPerson(emptyPerson);
         try {
           const created = await createEntry(personData);
-          setPeople(prev => prev.map(p => p.id === tempId ? { ...created, id: created.notionId } : p));
+          const photo = created.photoUrl || personData.photoUrl;
+          setPeople(prev => prev.map(p => p.id === tempId ? { ...created, id: created.notionId, photoUrl: photo } : p));
           showToast('Created', 'success');
         } catch (err) {
           showToast(`Saved locally, sync failed: ${err.message}`, 'error');

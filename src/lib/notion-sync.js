@@ -101,7 +101,11 @@ export function mergeEntries(local, remote) {
     // Compare timestamps — keep whichever is newer
     const localTime = loc.lastEdited ? new Date(loc.lastEdited).getTime() : 0;
     const remoteTime = rem.lastEdited ? new Date(rem.lastEdited).getTime() : 0;
-    result.push(remoteTime >= localTime ? rem : loc);
+    const winner = remoteTime >= localTime ? rem : loc;
+    const loser = remoteTime >= localTime ? loc : rem;
+    // Notion can't store base64 photo URLs — preserve local photoUrl if remote lost it
+    const photoUrl = winner.photoUrl || loser.photoUrl;
+    result.push(photoUrl !== winner.photoUrl ? { ...winner, photoUrl } : winner);
   }
 
   // Add remote entries not in local
