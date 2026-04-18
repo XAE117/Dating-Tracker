@@ -1,7 +1,32 @@
-import { StarRating, YesNo, FlagBadge } from './shared';
+import { useRef } from 'react';
+import { StarRating, YesNo, FlagBadge, getInitials } from './shared';
+
+const LIKELIHOOD_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 111];
+
+function compressPhoto(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 200;
+        let w = img.width, h = img.height;
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function PersonForm({ person, onChange, onSave, onCancel, saving }) {
   const update = (fields) => onChange({ ...person, ...fields });
+  const fileInputRef = useRef(null);
 
   const addFlag = () => {
     if (!person.newFlag.text.trim()) return;
@@ -20,6 +45,13 @@ export default function PersonForm({ person, onChange, onSave, onCancel, saving 
     });
   };
 
+  const handlePhotoFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const compressed = await compressPhoto(file);
+    update({ photoUrl: compressed });
+  };
+
   const isEditing = !!person.id;
 
   return (
@@ -35,13 +67,34 @@ export default function PersonForm({ person, onChange, onSave, onCancel, saving 
         </div>
 
         <div className="p-4 space-y-5 pb-12">
-          {/* Photo URL */}
+          {/* Photo picker */}
           <div>
-            <label className="block text-sm font-medium text-neutral-400 mb-1">Photo URL</label>
-            <input type="url" value={person.photoUrl || ''}
-              onChange={e => update({ photoUrl: e.target.value })}
-              className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white"
-              placeholder="https://..." />
+            <label className="block text-sm font-medium text-neutral-400 mb-2">Photo</label>
+            <div className="flex items-center gap-4">
+              {person.photoUrl ? (
+                <img src={person.photoUrl} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-neutral-700" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-neutral-700 flex items-center justify-center text-neutral-300 text-lg font-medium border-2 border-neutral-600">
+                  {getInitials(person.name || '?')}
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-neutral-700 text-white rounded-lg text-sm">
+                  {person.photoUrl ? 'Change photo' : 'Add photo'}
+                </button>
+                {person.photoUrl && (
+                  <button type="button"
+                    onClick={() => update({ photoUrl: '' })}
+                    className="px-4 py-2 bg-neutral-800 text-red-400 rounded-lg text-sm">
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" capture="user"
+              onChange={handlePhotoFile} className="hidden" />
           </div>
 
           {/* Name */}
@@ -101,20 +154,32 @@ export default function PersonForm({ person, onChange, onSave, onCancel, saving 
             </div>
           </div>
 
-          {/* Ratings */}
+          {/* Interest */}
           <div>
             <label className="block text-sm font-medium text-neutral-400 mb-2">Interest ({person.interestRating}/5)</label>
             <StarRating value={person.interestRating} onChange={v => update({ interestRating: v })} />
           </div>
 
+          {/* Future likelihood — 0-111% select */}
           <div>
-            <label className="block text-sm font-medium text-neutral-400 mb-2">Future Likelihood ({person.futureLikelihood}/10)</label>
-            <input type="range" min="1" max="10" value={person.futureLikelihood}
+            <label className="block text-sm font-medium text-neutral-400 mb-2">
+              Future likelihood — <span className="text-white font-semibold">{person.futureLikelihood}%</span>
+            </label>
+            <select value={person.futureLikelihood}
               onChange={e => update({ futureLikelihood: parseInt(e.target.value) })}
-              className="w-full h-8" />
+              className="w-full p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-base text-white">
+              {LIKELIHOOD_OPTIONS.map(v => (
+                <option key={v} value={v}>{v}%</option>
+              ))}
+            </select>
+            {/* Visual bar */}
+            <div className="mt-2 h-2 bg-neutral-700 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full transition-all"
+                style={{ width: `${Math.min(person.futureLikelihood, 100)}%` }} />
+            </div>
           </div>
 
-          {/* Yes/No Questions */}
+          {/* Met / Dates */}
           <div className="grid grid-cols-2 gap-4">
             <YesNo label="Met in person?" value={person.metInPerson}
               onChange={v => update({ metInPerson: v })} />
@@ -128,12 +193,17 @@ export default function PersonForm({ person, onChange, onSave, onCancel, saving 
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Sex / Sex quality */}
+          <div>
             <YesNo label="Sex?" value={person.sex}
-              onChange={v => update({ sex: v, sexGood: v ? person.sexGood : false })} />
+              onChange={v => update({ sex: v, sexGood: v ? person.sexGood || 0 : 0 })} />
             {person.sex && (
-              <YesNo label="Good?" value={person.sexGood}
-                onChange={v => update({ sexGood: v })} />
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-neutral-400 mb-2">
+                  Sex quality {person.sexGood > 0 ? `(${person.sexGood}/5)` : '(not rated)'}
+                </label>
+                <StarRating value={person.sexGood} onChange={v => update({ sexGood: v })} allowZero />
+              </div>
             )}
           </div>
 

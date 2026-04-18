@@ -12,7 +12,7 @@ function toNotion(person) {
     'Met In Person': { checkbox: person.metInPerson === true },
     'Number of Dates': { number: person.numberOfDates || null },
     Sex: { checkbox: person.sex === true },
-    'Sex Good': { checkbox: person.sexGood === true },
+    'Sex Good': { checkbox: person.sexGood > 0 },
     'Physical Chemistry': { checkbox: person.physicalChemistry === true },
     'Emotional Connection': { checkbox: person.emotionalConnection === true },
     'Ended By': person.endedBy ? { select: { name: capitalize(person.endedBy) } } : { select: null },
@@ -46,11 +46,11 @@ function fromNotion(page) {
     dateEnded: p['Date Ended']?.date?.start || '',
     status: (getSelect(p.Status) || 'Active').toLowerCase(),
     interestRating: p['Interest Rating']?.number || 3,
-    futureLikelihood: p['Future Likelihood']?.number || 5,
+    futureLikelihood: migrateLikelihood(p['Future Likelihood']?.number),
     metInPerson: p['Met In Person']?.checkbox || false,
     numberOfDates: p['Number of Dates']?.number || 0,
     sex: p.Sex?.checkbox || false,
-    sexGood: p['Sex Good']?.checkbox || false,
+    sexGood: p['Sex Good']?.checkbox ? 4 : 0,
     physicalChemistry: p['Physical Chemistry']?.checkbox || false,
     emotionalConnection: p['Emotional Connection']?.checkbox || false,
     endedBy: (getSelect(p['Ended By']) || '').toLowerCase(),
@@ -87,7 +87,8 @@ export function mergeEntries(local, remote) {
   // Walk local entries
   for (const loc of local) {
     if (!loc.notionId) {
-      // Local-only entry, keep it
+      // Drop seed entries once Notion has data; keep genuine local-only entries
+      if (loc._seedEntry && remote.length > 0) continue;
       result.push(loc);
       continue;
     }
@@ -111,6 +112,12 @@ export function mergeEntries(local, remote) {
   }
 
   return result;
+}
+
+// Values ≤ 10 are on the old 1-10 scale; multiply by 10 to get 0-111 percentage
+function migrateLikelihood(val) {
+  if (!val && val !== 0) return 50;
+  return val <= 10 ? Math.round(val * 10 / 5) * 5 : val;
 }
 
 function capitalize(s) {
