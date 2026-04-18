@@ -31,11 +31,12 @@ export function Avatar({ person, size = 'md' }) {
   );
 }
 
-export function StarRating({ value, onChange }) {
+export function StarRating({ value, onChange, allowZero = false }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map(i => (
-        <button key={i} type="button" onClick={() => onChange?.(i)}
+        <button key={i} type="button"
+          onClick={() => onChange?.(allowZero && i === value ? 0 : i)}
           className={`text-3xl ${i <= value ? 'text-yellow-400' : 'text-neutral-600'}`}>★</button>
       ))}
     </div>

@@ -1,0 +1,183 @@
+// Historical import: Google Sheets (authoritative) + old CSV (Harriet)
+// _seedEntry: true → dropped on first successful Notion sync
+// sexGood: 0=N/A, 1-5 stars | futureLikelihood: 0-111 (%)
+
+const seed = (id, overrides) => ({
+  notionId: null,
+  _seedEntry: true,
+  platform: '',
+  dateStarted: '',
+  dateEnded: '',
+  status: 'ended',
+  interestRating: 3,
+  futureLikelihood: 50,
+  metInPerson: false,
+  numberOfDates: 0,
+  sex: false,
+  sexGood: 0,
+  physicalChemistry: false,
+  emotionalConnection: false,
+  endedBy: '',
+  whyEnded: '',
+  sawIssuesEarly: false,
+  wouldSwipeAgain: false,
+  flags: { green: [], yellow: [], red: [] },
+  whatDrewYou: '',
+  whatLearned: '',
+  notes: '',
+  photoUrl: '',
+  ...overrides,
+  id,
+});
+
+export const SEED_DATA = [
+  seed(1700000001, {
+    name: 'Kat', platform: 'Hinge',
+    dateStarted: '2026-01-01', dateEnded: '2026-02-12',
+    interestRating: 2, metInPerson: true, numberOfDates: 3,
+    endedBy: 'me', notes: 'Ongoing',
+  }),
+  seed(1700000002, {
+    name: 'Chelle', platform: 'Hinge',
+    dateStarted: '2025-10-01', dateEnded: '2025-12-30',
+    interestRating: 2, metInPerson: true, numberOfDates: 3,
+    sex: true, sexGood: 4, physicalChemistry: true, emotionalConnection: true,
+    endedBy: 'her', whyEnded: 'mutual',
+  }),
+  seed(1700000003, {
+    name: 'Redding', platform: 'Hinge',
+    dateStarted: '2025-12-01', dateEnded: '2025-12-31',
+    metInPerson: true, numberOfDates: 1,
+    physicalChemistry: true, emotionalConnection: true,
+    endedBy: 'me', whyEnded: 'their-stuff', notes: 'Definitely their stuff',
+  }),
+  seed(1700000004, {
+    name: 'Yulia', platform: 'Hinge',
+    dateStarted: '2025-11-01', dateEnded: '2026-01-01', status: 'paused',
+    interestRating: 2, metInPerson: true, numberOfDates: 7,
+    sex: true, sexGood: 2,
+    endedBy: 'mutual', whyEnded: 'natural',
+    notes: 'Both went separate ways January.\nHas resumed in March.',
+  }),
+  seed(1700000005, {
+    name: 'Andrea H', platform: 'Hinge',
+    dateStarted: '2025-11-01', dateEnded: '2025-12-31',
+    interestRating: 1, metInPerson: true, numberOfDates: 1,
+    endedBy: 'mutual', whyEnded: 'mutual',
+  }),
+  seed(1700000006, {
+    name: 'Laurie', platform: 'R4R',
+    dateStarted: '2025-09-01', dateEnded: '2025-10-31',
+    metInPerson: true, endedBy: 'mutual',
+  }),
+  seed(1700000007, {
+    name: 'Maura', platform: 'Hinge',
+    dateStarted: '2025-09-01', dateEnded: '2025-10-31',
+    metInPerson: true, numberOfDates: 4,
+    sex: true, endedBy: 'mutual', whyEnded: 'mutual',
+  }),
+  seed(1700000008, {
+    name: 'Sunny', platform: 'R4R',
+    dateStarted: '2025-09-01', dateEnded: '2025-09-30',
+    endedBy: 'mutual', notes: "Didn't meet",
+  }),
+  seed(1700000009, {
+    name: 'Sidney', platform: 'R4R',
+    dateStarted: '2025-08-01', dateEnded: '2025-09-30',
+    endedBy: 'me', whyEnded: 'their-stuff', notes: "Didn't meet",
+  }),
+  seed(1700000010, {
+    name: 'Rachel', platform: 'Hinge',
+    dateStarted: '2025-08-01', dateEnded: '2025-08-31',
+    metInPerson: true,
+  }),
+  seed(1700000011, {
+    name: 'Christiana L', platform: 'Hinge',
+    dateStarted: '2025-07-01', dateEnded: '2025-08-31',
+    metInPerson: true,
+    sex: true, sexGood: 4, physicalChemistry: true,
+    endedBy: 'me', whyEnded: 'their-stuff', sawIssuesEarly: true,
+    flags: { green: [], yellow: [], red: ['Mental health red flags'] },
+    notes: 'Mental health issues presented early',
+  }),
+  seed(1700000012, {
+    name: 'Moni', platform: 'Hinge',
+    dateStarted: '2025-05-01', dateEnded: '2025-06-30',
+    metInPerson: true, sex: true,
+    endedBy: 'me', whyEnded: 'their-stuff',
+  }),
+  seed(1700000013, {
+    name: 'Madeleine', platform: 'Hinge',
+    dateStarted: '2025-05-01', dateEnded: '2025-06-30',
+    metInPerson: true, endedBy: 'mutual', whyEnded: 'mutual',
+  }),
+  seed(1700000014, {
+    name: 'Katie F',
+    dateStarted: '2025-04-01', dateEnded: '2025-04-30',
+    metInPerson: true,
+  }),
+  seed(1700000015, {
+    name: 'Kristen', platform: 'R4R',
+    dateStarted: '2025-04-01', dateEnded: '2025-04-30',
+    notes: "Didn't meet",
+  }),
+  seed(1700000016, {
+    name: 'Kelsey', platform: 'Hinge',
+    dateStarted: '2025-01-01', dateEnded: '2025-03-31',
+    endedBy: 'me', whyEnded: 'their-stuff', notes: "Didn't meet",
+  }),
+  seed(1700000017, {
+    name: 'KJ', platform: 'Other',
+    dateStarted: '2025-01-01', dateEnded: '2025-02-28',
+    endedBy: 'me', whyEnded: 'their-stuff', notes: "Didn't meet",
+  }),
+  seed(1700000018, {
+    name: 'Lindsay',
+    dateStarted: '2025-01-01', dateEnded: '2025-01-31',
+    notes: "Didn't meet",
+  }),
+  seed(1700000019, {
+    name: 'Amber', platform: 'Other',
+    dateStarted: '2025-01-01', dateEnded: '2025-04-30',
+    metInPerson: true, endedBy: 'mutual',
+  }),
+  // Unique to old CSV — not in Google Sheets
+  seed(1700000020, {
+    name: 'Harriet',
+    dateStarted: '2025-12-01', dateEnded: '2025-12-31',
+    endedBy: 'mutual', notes: "Didn't meet",
+  }),
+  // App-generated entries (timestamp IDs) — likely already in Notion
+  seed(1768876908641, {
+    name: 'Christine', platform: 'Other',
+    dateStarted: '2026-01-15', dateEnded: '2026-01-25',
+    futureLikelihood: 0,
+    metInPerson: true, numberOfDates: 1,
+    endedBy: 'her',
+    notes: "Mediocre chemistry, unclear what she wanted, she sent nice text to end interaction",
+  }),
+  seed(1769033338264, {
+    name: 'Liza', platform: 'Hinge',
+    dateStarted: '2026-01-14', dateEnded: '2026-04-11',
+    interestRating: 5, futureLikelihood: 0,
+    metInPerson: true, numberOfDates: 20,
+    sex: true, sexGood: 4, physicalChemistry: true,
+    endedBy: 'mutual',
+  }),
+  seed(1769248563040, {
+    name: 'McKenna', platform: 'Hinge',
+    dateStarted: '2026-01-19', dateEnded: '',
+    interestRating: 1, futureLikelihood: 0,
+    metInPerson: true, numberOfDates: 2,
+    endedBy: 'mutual',
+    notes: 'Low chemistry, highly dysfunctional person, I let it die a quick death',
+  }),
+  seed(1776475870297, {
+    name: 'Stephanie', platform: 'Other',
+    dateStarted: '2026-02-05', dateEnded: '', status: 'active',
+    interestRating: 1, futureLikelihood: 0,
+    metInPerson: true, numberOfDates: 5,
+    sex: true, sexGood: 2,
+    endedBy: '',
+  }),
+];

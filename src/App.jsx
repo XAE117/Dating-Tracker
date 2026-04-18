@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { loadFromCache, saveToCache, setSyncMeta } from './lib/local-storage';
+import { SEED_DATA } from './lib/seed-data';
 import { fetchAll, createEntry, updateEntry, deleteEntry, mergeEntries } from './lib/notion-sync';
 import { showToast } from './lib/toast';
 import { SyncStatus } from './components/shared';
@@ -15,14 +16,14 @@ const emptyPerson = {
   dateStarted: '',
   dateEnded: '',
   interestRating: 3,
-  futureLikelihood: 5,
+  futureLikelihood: 50,
   flags: { green: [], yellow: [], red: [] },
   newFlag: { color: 'green', text: '' },
   status: 'active',
   metInPerson: false,
   numberOfDates: 0,
   sex: false,
-  sexGood: false,
+  sexGood: 0,
   physicalChemistry: false,
   emotionalConnection: false,
   endedBy: '',
@@ -44,10 +45,15 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState('offline');
   const [saving, setSaving] = useState(false);
 
-  // Load from cache on mount, then sync
+  // Load from cache on mount (seed if empty), then sync
   useEffect(() => {
     const cached = loadFromCache();
-    if (cached.length) setPeople(cached);
+    if (cached.length) {
+      setPeople(cached);
+    } else {
+      setPeople(SEED_DATA);
+      saveToCache(SEED_DATA);
+    }
     syncFromNotion();
   }, []);
 
